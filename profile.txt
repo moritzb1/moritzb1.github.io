@@ -15,7 +15,6 @@ expertise=Digital Marketing, AI Implementation, Data Science, Sales
 education=Bachelor Bsc Business Psychology
 
 email=bindermo@hs-pforzheim.de
-linkedin=https://pse.is/8nn88y
 
 about1= 
 about2= 
