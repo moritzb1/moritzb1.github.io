@@ -1,578 +1,542 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M12345678 Mediapipe Demo</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M334422 Mediapipe Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Mono:wght@400;700&display=swap">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 100%; height: 100%;
-    background: #05060f;
-    overflow: hidden;
-    font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
-    color: #fff;
+  /* Goldstadt Particles - Extra Credit Challenge #2-7, Moritz Binder (M334422) */
+  :root {
+    --bg: #05060c;
+    --panel: rgba(12, 13, 24, 0.78);
+    --line: rgba(255, 211, 107, 0.28);
+    --text: #f3efe4;
+    --muted: #9c98a8;
+    --accent: #ffd36b;
+    --accent2: #ffb02e;
   }
-  #stage { position: relative; width: 100vw; height: 100vh; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+    font-family: "Space Mono", ui-monospace, Menlo, monospace; }
+  #fx { position: fixed; inset: 0; display: block; }
+  video { display: none; }
 
-  /* Particle canvas: full-screen background on top */
-  #particleCanvas {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    z-index: 2;
-    pointer-events: none;
-  }
+  #titleBar { position: fixed; top: 18px; left: 0; right: 0; text-align: center; pointer-events: none; z-index: 2; padding: 0 16px; }
+  #titleBar h1 { margin: 0; font-family: "Syne", system-ui, sans-serif; font-weight: 800; letter-spacing: 0.04em;
+    font-size: clamp(20px, 3.6vw, 52px); white-space: nowrap; line-height: 1.05;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), #fff6d8, var(--accent), var(--accent2));
+    background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shine 6s linear infinite; filter: drop-shadow(0 0 18px rgba(255, 190, 80, 0.35)); }
+  #titleBar p { margin: 6px 0 0; font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
+  @keyframes shine { to { background-position: -200% 0; } }
 
-  /* Live camera feed + detection overlay (picture-in-picture, bottom right) */
-  #camWrap {
-    position: absolute;
-    right: 20px; bottom: 20px;
-    width: 420px;
-    aspect-ratio: 4 / 3;
-    border: 2px solid rgba(0, 255, 220, .6);
-    border-radius: 12px;
-    overflow: hidden;
-    z-index: 5;
-    box-shadow: 0 0 24px rgba(0, 255, 220, .35);
-    background: #000;
-  }
-  #video, #overlayCanvas {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);   /* mirrored for a more intuitive view */
-  }
-  #overlayCanvas { z-index: 2; }
+  #hud { position: fixed; left: 16px; bottom: 16px; width: min(330px, calc(100vw - 32px)); z-index: 3;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 13px; line-height: 1.5; }
+  #clock { font-family: "Syne", system-ui, sans-serif; font-size: 30px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; line-height: 1; }
+  #date { color: var(--muted); margin: 4px 0 10px; }
+  .row { display: flex; justify-content: space-between; gap: 10px; }
+  .row b { color: var(--accent); font-weight: 700; }
+  .meter { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); margin: 3px 0 8px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width 0.12s; }
+  #hint { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
+  #hint span { color: var(--text); }
 
-  /* Title bar */
-  #titleBar {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    text-align: center;
-    padding: 14px 0 10px;
-    z-index: 10;
-    background: linear-gradient(180deg, rgba(5,6,15,.85), transparent);
-  }
-  #titleBar h1 {
-    font-size: 44px;
-    font-weight: 900;
-    letter-spacing: 6px;
-    background: linear-gradient(90deg, #00ffd0, #6a8dff, #ff6ad5, #ffd166, #00ffd0);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: flow 8s linear infinite;
-    text-shadow: 0 0 30px rgba(106, 141, 255, .25);
-  }
-  @keyframes flow { to { background-position: 300% 0; } }
+  #pip { position: fixed; right: 16px; bottom: 16px; z-index: 3; width: min(320px, 40vw); border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--line); box-shadow: 0 0 28px rgba(255, 190, 80, 0.18); background: #000; }
+  #pip canvas { display: block; width: 100%; height: auto; }
+  #pipLabel { position: absolute; left: 10px; top: 8px; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent);
+    text-shadow: 0 0 6px #000; }
+  #pip[hidden] { display: none; }
 
-  /* Left-side info panel */
-  #infoPanel {
-    position: absolute;
-    left: 20px; bottom: 20px;
-    z-index: 10;
-    background: rgba(10, 14, 30, .72);
-    border: 1px solid rgba(120, 160, 255, .35);
-    border-radius: 12px;
-    padding: 16px 20px;
-    min-width: 300px;
-    backdrop-filter: blur(6px);
-    line-height: 1.9;
-    font-size: 15px;
-  }
-  #infoPanel .clock { font-size: 26px; font-weight: 700; color: #00ffd0; }
-  #infoPanel .date  { font-size: 17px; color: #9fb4ff; }
-  #infoPanel .row b { color: #ffd166; }
-  #handState.open   { color: #00ff88; font-weight: 700; }
-  #handState.closed { color: #ff5f7a; font-weight: 700; }
-  #handState.none   { color: #888; }
-
-  .bar {
-    width: 100%; height: 8px;
-    background: rgba(255,255,255,.12);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 2px;
-  }
-  .bar > i {
-    display: block; height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #00ffd0, #6a8dff);
-    border-radius: 4px;
-    transition: width .12s linear;
-  }
-
-  #loading {
-    position: absolute; inset: 0;
-    z-index: 99;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 16px;
-    background: #05060f;
-    font-size: 20px; letter-spacing: 2px;
-  }
-  .spinner {
-    width: 52px; height: 52px;
-    border: 4px solid rgba(0,255,208,.2);
-    border-top-color: #00ffd0;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
+  #loader { position: fixed; inset: 0; display: grid; place-items: center; z-index: 5; background: rgba(5, 6, 12, 0.55); padding: 16px; }
+  #loader[hidden] { display: none; }
+  .card { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; text-align: center; }
+  .spinner { width: 42px; height: 42px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid rgba(255, 211, 107, 0.2); border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  #status { font-size: 15px; margin: 0 0 6px; }
+  #substatus { color: var(--muted); font-size: 12px; margin: 0 0 14px; min-height: 1em; }
+  .steps { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; font-size: 12.5px; display: grid; gap: 4px; }
+  .steps li { color: var(--muted); }
+  .steps li.done { color: var(--accent); }
+  .steps li.active { color: var(--text); }
+  button { font: inherit; font-size: 13px; cursor: pointer; border-radius: 999px; padding: 8px 16px; border: 1px solid var(--line);
+    background: transparent; color: var(--text); }
+  button:hover, button:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+  .error .spinner { display: none; }
+  .error #status { color: #ff8a8a; }
+
+  @media (max-width: 640px) {
+    #hud { font-size: 12px; padding: 10px 12px; width: min(250px, 58vw); }
+    #clock { font-size: 22px; }
+    #hint { display: none; }
+    #pip { width: 36vw; }
+  }
 </style>
 </head>
 <body>
-<div id="stage">
-  <canvas id="particleCanvas"></canvas>
+<canvas id="fx"></canvas>
+<video id="video" playsinline muted></video>
 
-  <div id="titleBar"><h1>M12345678 Mediapipe Demo</h1></div>
+<header id="titleBar">
+  <h1>M334422 Mediapipe Demo</h1>
+  <p>Goldstadt Particles · Pforzheim</p>
+</header>
 
-  <div id="camWrap">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="overlayCanvas"></canvas>
-  </div>
+<aside id="hud" aria-live="polite">
+  <div id="clock">--:--:--</div>
+  <div id="date">----</div>
+  <div class="row"><span>Hand</span><b id="hand">-</b></div>
+  <div class="row"><span>Gesture</span><b id="gesture">-</b></div>
+  <div class="row"><span>Openness</span><b id="openTxt">0%</b></div>
+  <div class="meter"><i id="openBar"></i></div>
+  <div class="row"><span>Distance to camera</span><b id="distTxt">-</b></div>
+  <div class="meter"><i id="distBar"></i></div>
+  <div class="row"><span>Shape</span><b id="shape">Heart</b></div>
+  <div class="row"><span>Material</span><b id="material">Gold</b></div>
+  <div class="row"><span>Particles · FPS</span><b id="stats">-</b></div>
+  <div id="hint"><span>Fist</span> next shape &amp; material · <span>Open palm</span> blast ·
+    <span>Pinch</span> magnet · <span>Closer</span> bigger</div>
+</aside>
 
-  <div id="infoPanel">
-    <div class="clock" id="clock">--:--:--</div>
-    <div class="date" id="dateText">----/--/--</div>
-    <div class="row">Right Hand: <span id="handState" class="none">Not Detected</span></div>
-    <div class="row">Openness: <b id="openPct">--</b>
-      <div class="bar"><i id="openBar"></i></div>
-    </div>
-    <div class="row">Distance to Screen: <b id="distText">--</b>
-      <div class="bar"><i id="distBar"></i></div>
-    </div>
-    <div class="row">Shape: <b id="shapeText">Heart</b>&nbsp;&nbsp;Color: <b id="colorText">-</b></div>
-    <div class="row" style="font-size:13px;color:#8899bb">Fist &rarr; Open switches shape &amp; color | Moving closer shrinks the particle range</div>
-  </div>
+<div id="pip" hidden><canvas id="pipCanvas" width="320" height="180"></canvas><span id="pipLabel">Webcam</span></div>
 
-  <div id="loading">
+<div id="loader">
+  <div class="card" id="loaderCard">
     <div class="spinner"></div>
-    <div id="loadingText">Loading AI models, please wait and allow camera access&hellip;</div>
+    <p id="status">Loading…</p>
+    <p id="substatus"></p>
+    <ul class="steps">
+      <li id="st1">1. Load MediaPipe Tasks Vision</li>
+      <li id="st2">2. Load Hand Landmarker model</li>
+      <li id="st3">3. Start webcam</li>
+    </ul>
+    <button id="mouseBtn" type="button">Use mouse instead of camera</button>
   </div>
 </div>
 
 <script type="module">
-import {
-  FilesetResolver,
-  HandLandmarker,
-  PoseLandmarker
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+const CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const N = window.innerWidth < 700 ? 1600 : 2800;      // particle count
+const TAU = Math.PI * 2;
 
-/* ============ DOM ============ */
-const video          = document.getElementById("video");
-const overlayCanvas  = document.getElementById("overlayCanvas");
-const overlayCtx     = overlayCanvas.getContext("2d");
-const particleCanvas = document.getElementById("particleCanvas");
-const pCtx           = particleCanvas.getContext("2d");
-const loadingEl      = document.getElementById("loading");
-const loadingTextEl  = document.getElementById("loadingText");
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
 
-const clockEl   = document.getElementById("clock");
-const dateEl    = document.getElementById("dateText");
-const handEl    = document.getElementById("handState");
-const openPctEl = document.getElementById("openPct");
-const openBarEl = document.getElementById("openBar");
-const distEl    = document.getElementById("distText");
-const distBarEl = document.getElementById("distBar");
-const shapeEl   = document.getElementById("shapeText");
-const colorEl   = document.getElementById("colorText");
+// Materials of the "Goldstadt" (Pforzheim, city of gold and jewellery)
+const MATERIALS = [
+  { name: "Gold",      c: ["#ffd36b", "#ffb02e", "#fff2b8"] },
+  { name: "Rose Gold", c: ["#ffb3a1", "#f2789b", "#ffe2d8"] },
+  { name: "Sapphire",  c: ["#5fb0ff", "#3159ff", "#cbe8ff"] },
+  { name: "Emerald",   c: ["#45ffb0", "#10c088", "#cdfff0"] },
+  { name: "Ruby",      c: ["#ff5470", "#d0164c", "#ffc7d1"] },
+  { name: "Amethyst",  c: ["#c992ff", "#8a5cf6", "#f1ddff"] },
+  { name: "Silver",    c: ["#e6ecf5", "#9fb0c8", "#ffffff"] },
+];
 
-function resize() {
-  particleCanvas.width  = innerWidth;
-  particleCanvas.height = innerHeight;
+// ---------------------------------------------------------------------------
+// Shapes: each maps per-particle constants (u, v in 0..1) and time to a point
+// in unit space (about -1..1, y pointing down)
+// ---------------------------------------------------------------------------
+function samplePoly(poly, u) {
+  const segs = [];
+  let total = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    segs.push([a, b, len]); total += len;
+  }
+  let d = u * total;
+  for (const [a, b, len] of segs) {
+    if (d <= len) { const t = d / len; return [lerp(a[0], b[0], t), lerp(a[1], b[1], t)]; }
+    d -= len;
+  }
+  return poly[0];
 }
-addEventListener("resize", resize);
-resize();
-
-/* ============ Clock ============ */
-const WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-function tickClock() {
-  const n = new Date();
-  clockEl.textContent = n.toLocaleTimeString("en-US", { hour12: false });
-  const y = n.getFullYear();
-  const m = String(n.getMonth() + 1).padStart(2, "0");
-  const d = String(n.getDate()).padStart(2, "0");
-  dateEl.textContent = `${y}-${m}-${d} ${WEEK[n.getDay()]}`;
-}
-setInterval(tickClock, 500);
-tickClock();
-
-/* ============ Shape definitions (return unit coordinates -1..1) ============ */
-function heartPoint(t) {
-  const x = 16 * Math.pow(Math.sin(t), 3);
-  const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
-  return { x: x/17, y: -y/17 };
-}
-function starPoint(t) {
-  const spikes = 5, outer = 1, inner = 0.42;
-  const seg = (t / (Math.PI*2)) * spikes * 2;
-  const i = Math.floor(seg), frac = seg - i;
-  const r1 = (i % 2 === 0) ? outer : inner;
-  const r2 = (i % 2 === 0) ? inner : outer;
-  const a1 = (i    / (spikes*2)) * Math.PI*2 - Math.PI/2;
-  const a2 = ((i+1)/ (spikes*2)) * Math.PI*2 - Math.PI/2;
-  const x = r1*Math.cos(a1) + (r2*Math.cos(a2) - r1*Math.cos(a1))*frac;
-  const y = r1*Math.sin(a1) + (r2*Math.sin(a2) - r1*Math.sin(a1))*frac;
-  return { x, y };
-}
-function flowerPoint(t) {          // five-petal flower (rose curve)
-  const r = Math.abs(Math.cos(2.5 * t));
-  return { x: r*Math.cos(t), y: r*Math.sin(t) };
-}
-function butterflyPoint(t) {       // butterfly curve
-  const s = t * 6;                 // needs a longer parameter domain
-  const r = Math.exp(Math.sin(s)) - 2*Math.cos(4*s) + Math.pow(Math.sin((2*s - Math.PI)/24), 5);
-  return { x: r*Math.sin(s)/4, y: -r*Math.cos(s)/4 + 0.15 };
-}
-function spiralPoint(t) {          // three-turn spiral
-  const turns = 3;
-  const a = t * turns;
-  const r = t / (Math.PI*2);
-  return { x: r*Math.cos(a), y: r*Math.sin(a) };
-}
+const GEM = [[-0.2, -0.7], [0.2, -0.7], [0.34, -0.56], [0, -0.1], [-0.34, -0.56]];
 
 const SHAPES = [
-  { name: "Heart",     fn: heartPoint },
-  { name: "Star",      fn: starPoint },
-  { name: "Flower",    fn: flowerPoint },
-  { name: "Butterfly", fn: butterflyPoint },
-  { name: "Spiral",    fn: spiralPoint },
+  { name: "Heart", f(u, v, t) {
+      const a = u * TAU, beat = 1 + 0.06 * Math.pow(Math.max(0, Math.sin(t * 3)), 8);
+      const th = 1 + (v - 0.5) * 0.14;
+      const x = 16 * Math.sin(a) ** 3;
+      const y = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+      return [x / 17 * th * beat, (y / 17 + 0.08) * th * beat];
+  } },
+  { name: "Star", f(u, v, t) {
+      const n = 5, s = u * n * 2, i = Math.floor(s), fr = s - i;
+      const r = (k) => (k % 2 ? 0.42 : 1);
+      const ang = (k) => (k / (n * 2)) * TAU - Math.PI / 2 + t * 0.2;
+      const p1 = [Math.cos(ang(i)) * r(i), Math.sin(ang(i)) * r(i)];
+      const p2 = [Math.cos(ang(i + 1)) * r(i + 1), Math.sin(ang(i + 1)) * r(i + 1)];
+      const j = (v - 0.5) * 0.07;
+      return [lerp(p1[0], p2[0], fr) + j, lerp(p1[1], p2[1], fr) - j];
+  } },
+  { name: "Spiral", f(u, v, t) {
+      const arm = v < 0.5 ? 0 : Math.PI;
+      const r = Math.pow(u, 0.75);
+      const a = r * TAU * 1.6 + arm + t * 0.7;
+      const spread = ((v % 0.5) - 0.25) * 0.14 * (0.4 + r);
+      return [Math.cos(a) * r + spread, Math.sin(a) * r + spread];
+  } },
+  { name: "Twist", f(u, v, t) {
+      const y = (u - 0.5) * 1.9;
+      const phase = y * Math.PI * 2 + t * 1.5;
+      if (v > 0.86) {                                  // rungs between the two strands
+        const k = (v - 0.86) / 0.14;
+        return [Math.sin(phase) * 0.46 * (2 * k - 1), y];
+      }
+      const strand = v < 0.43 ? 0 : Math.PI;
+      const a = phase + strand;
+      return [Math.sin(a) * 0.46 * (0.85 + 0.15 * Math.cos(a)), y + (v % 0.43 - 0.2) * 0.03];
+  } },
+  { name: "Ring", f(u, v, t) {                          // own idea: Pforzheim jewellery ring
+      if (v < 0.76) {
+        const a = u * TAU, tilt = 0.3 + 0.07 * Math.sin(t * 0.9);
+        const band = (v / 0.76 - 0.5) * 0.15;
+        return [Math.cos(a) * (0.82 + band), Math.sin(a) * (0.82 + band) * tilt + 0.3];
+      }
+      const [x, y] = samplePoly(GEM, u);
+      const sparkle = 1 + 0.05 * Math.sin(t * 6 + u * 40);
+      return [x * sparkle, y + 0.08];
+  } },
 ];
 
-/* Distinct color pairs (primary / secondary) */
-const PALETTES = [
-  { name: "Red",     a: "#ff2d55", b: "#ff9500" },
-  { name: "Teal",    a: "#00ffa8", b: "#00ccff" },
-  { name: "Blue",    a: "#3a7bff", b: "#9d6bff" },
-  { name: "Gold",    a: "#ffd60a", b: "#ff7b00" },
-  { name: "Magenta", a: "#ff2dcb", b: "#7a5cff" },
-  { name: "White",   a: "#ffffff", b: "#9adcff" },
-];
+// ---------------------------------------------------------------------------
+// Canvas, sprites, particles
+// ---------------------------------------------------------------------------
+const fx = $("fx"), ctx = fx.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  fx.width = W * DPR; fx.height = H * DPR;
+  fx.style.width = W + "px"; fx.style.height = H + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener("resize", resize);
+resize();
 
-/* ============ Particle system ============ */
-const N = 4000;
+function makeSprite(color) {
+  const s = 32, c = document.createElement("canvas");
+  c.width = c.height = s;
+  const g = c.getContext("2d"), grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  grd.addColorStop(0, color);
+  grd.addColorStop(0.3, color + "99");
+  grd.addColorStop(1, color + "00");
+  g.fillStyle = grd; g.fillRect(0, 0, s, s);
+  return c;
+}
+const SPRITES = MATERIALS.map((m) => m.c.map(makeSprite));
+
 const particles = [];
 for (let i = 0; i < N; i++) {
   particles.push({
-    x: Math.random()*innerWidth,
-    y: Math.random()*innerHeight,
-    vx: 0, vy: 0,
-    t: (i / N) * Math.PI * 2,          // shape parameter
-    jx: (Math.random()-0.5),           // random scatter direction
-    jy: (Math.random()-0.5),
-    size: 1.5 + Math.random()*2.5,
-    tw: Math.random()*Math.PI*2,       // twinkle phase
+    x: Math.random() * W, y: Math.random() * H, vx: 0, vy: 0,
+    u: Math.random(), v: Math.random(),
+    ci: Math.random() < 0.15 ? 2 : (Math.random() < 0.5 ? 0 : 1),
+    size: 1.4 + Math.random() * 2.4,
+    twinkle: Math.random() < 0.06,
   });
 }
 
-let shapeIdx = 0;
-let paletteIdx = 0;
-let openness = 0.5;        // 0=fist 1=fully open (smoothed)
-let rawOpenness = 0.5;
-let distScale = 1.0;       // overall scale from distance (smoothed)
-let rawDistScale = 1.0;
-let handDetected = false;
-let wasClosed = false;
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const state = {
+  mode: "loading",          // "loading" | "hand" | "mouse"
+  shape: 0, material: 0,
+  scale: 1, scaleTarget: 1,
+  openness: 0.5, dist: 0.5,
+  gesture: "No hand", prevGesture: "No hand",
+  blasting: false, lastSwitch: 0,
+  magnet: null,             // {x, y} while pinching / dragging
+  handLabel: "-",
+};
 
-function applyShape() {
-  shapeEl.textContent = SHAPES[shapeIdx].name;
-  const p = PALETTES[paletteIdx];
-  colorEl.textContent = p.name;
-  colorEl.style.color = p.a;
+function nextShape() {
+  const now = performance.now();
+  if (now - state.lastSwitch < 450) return;
+  state.lastSwitch = now;
+  state.shape = (state.shape + 1) % SHAPES.length;
+  state.material = (state.material + 1) % MATERIALS.length;
+  // small burst so the morph is visible
+  for (const p of particles) { p.vx += (Math.random() - 0.5) * 6; p.vy += (Math.random() - 0.5) * 6; }
 }
-applyShape();
 
-function drawParticles() {
-  const W = particleCanvas.width, H = particleCanvas.height;
-  pCtx.clearRect(0, 0, W, H);
-
-  // smoothing
-  openness  += (rawOpenness  - openness)  * 0.12;
-  distScale += (rawDistScale - distScale) * 0.08;
-
-  const cx = W/2, cy = H/2 + 20;
-  const baseR = Math.min(W, H) * 0.52 * distScale;
-  // shrinks to 8% on a fist, 100% + extra scatter when fully open (may fly off-screen)
-  const scale = baseR * (0.08 + 0.92 * openness);
-  const scatter = Math.max(0, openness - 0.55) * baseR * 6.0;  // bursts outward near fully open
-
-  const pal = PALETTES[paletteIdx];
-  const shapeFn = SHAPES[shapeIdx].fn;
-  const time = performance.now() / 1000;
-
-  pCtx.globalCompositeOperation = "lighter";
+function blast() {
+  state.blasting = true;
+  const cx = W / 2, cy = H / 2;
   for (const p of particles) {
-    const pt = shapeFn(p.t);
-    const tx = cx + pt.x * scale + p.jx * scatter;
-    const ty = cy + pt.y * scale + p.jy * scatter;
-    // spring-follow
-    p.vx = (p.vx + (tx - p.x) * 0.045) * 0.86;
-    p.vy = (p.vy + (ty - p.y) * 0.045) * 0.86;
-    p.x += p.vx;
-    p.y += p.vy;
-
-    const twinkle = 0.55 + 0.45 * Math.sin(time*3 + p.tw);
-    pCtx.globalAlpha = twinkle * (0.35 + 0.65*openness);
-    pCtx.fillStyle = (p.t % (Math.PI/2) < Math.PI/4) ? pal.a : pal.b;
-    pCtx.beginPath();
-    pCtx.arc(p.x, p.y, p.size * (0.6 + 0.6*openness), 0, Math.PI*2);
-    pCtx.fill();
+    let dx = p.x - cx, dy = p.y - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len; dy /= len;
+    const sp = 22 + Math.random() * 30;
+    p.vx = dx * sp + (Math.random() - 0.5) * 8;
+    p.vy = dy * sp + (Math.random() - 0.5) * 8;
   }
-  pCtx.globalAlpha = 1;
-  pCtx.globalCompositeOperation = "source-over";
 }
 
-/* ============ MediaPipe ============ */
-let handLandmarker, poseLandmarker;
+// ---------------------------------------------------------------------------
+// Hand analysis
+// ---------------------------------------------------------------------------
+const CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+
+function analyseHand(lm, aspect) {
+  const d = (a, b) => Math.hypot((lm[a].x - lm[b].x) * aspect, lm[a].y - lm[b].y);
+  const palm = d(0, 9) || 1e-6;                                  // wrist to middle-finger knuckle
+  const reach = [8, 12, 16, 20].reduce((s, i) => s + d(i, 0), 0) / 4 / palm;
+  const open = clamp((reach - 1.05) / (1.9 - 1.05), 0, 1);
+  const pinch = d(4, 8) / palm;
+  const dist = clamp((palm - 0.08) / (0.3 - 0.08), 0, 1);        // bigger palm = closer to camera
+  return { open, pinch, dist };
+}
+
+function updateGesture(hand) {
+  state.prevGesture = state.gesture;
+  state.magnet = null;
+  if (!hand) {
+    state.gesture = "No hand";
+    state.scaleTarget = 1;
+    if (state.blasting) state.blasting = false;
+    return;
+  }
+  const { open, pinch, dist } = hand.metrics;
+  state.openness = lerp(state.openness, open, 0.45);
+  state.dist = lerp(state.dist, dist, 0.3);
+  state.scaleTarget = 0.5 + state.dist * 2.0;                    // 0.5x .. 2.5x
+
+  let g;
+  if (pinch < 0.33 && state.openness > 0.2) g = "Pinch";
+  else if (state.openness < 0.2) g = "Fist";
+  else if (state.openness > 0.8) g = "Open palm";
+  else g = "Half open";
+  state.gesture = g;
+
+  if (g === "Fist" && state.prevGesture !== "Fist") nextShape();
+  if (g === "Open palm" && !state.blasting) blast();
+  if (g !== "Open palm" && state.blasting) state.blasting = false;
+  if (g === "Pinch") {
+    const lm = hand.lm;
+    state.magnet = { x: (1 - (lm[4].x + lm[8].x) / 2) * W, y: ((lm[4].y + lm[8].y) / 2) * H };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MediaPipe + webcam
+// ---------------------------------------------------------------------------
+const video = $("video");
+const pip = $("pip"), pipCanvas = $("pipCanvas"), pctx = pipCanvas.getContext("2d");
+let landmarker = null, lastVideoTime = -1, hand = null;
+
+function setStep(id, cls) { $(id).className = cls; }
+function setStatus(main, sub = "") { $("status").textContent = main; $("substatus").textContent = sub; }
+function showError(main, sub) {
+  $("loaderCard").classList.add("error");
+  setStatus(main, sub);
+  $("mouseBtn").textContent = "Continue with mouse";
+}
 
 async function init() {
-  // Start the models (network download + WASM init) and the camera permission
-  // prompt at the same time instead of one after another. getUserMedia's
-  // permission dialog and device startup don't need the models to be ready,
-  // so running them in parallel noticeably cuts the time to first frame.
-  const modelsPromise = (async () => {
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
-    return Promise.all([
-      HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-          delegate: "GPU"
-        },
-        runningMode: "VIDEO",
-        numHands: 2
-      }),
-      PoseLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-          delegate: "GPU"
-        },
-        runningMode: "VIDEO",
-        numPoses: 1
-      })
-    ]);
-  })();
-
-  const cameraPromise = navigator.mediaDevices.getUserMedia({
-    video: { width: 640, height: 480 }, audio: false
-  });
-
-  const [[hl, pl], stream] = await Promise.all([modelsPromise, cameraPromise]);
-  handLandmarker = hl;
-  poseLandmarker = pl;
-
-  video.srcObject = stream;
-  await new Promise(r => video.onloadeddata = r);
-  overlayCanvas.width  = video.videoWidth;
-  overlayCanvas.height = video.videoHeight;
-
-  loadingEl.style.display = "none";
-  requestAnimationFrame(loop);
-}
-
-function dist2D(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-
-/* ============ Neon-style skeleton drawing ============ */
-function px(lm) {
-  return { x: lm.x * overlayCanvas.width, y: lm.y * overlayCanvas.height };
-}
-
-/* Glowing line: outer halo + inner bright core */
-function glowLine(ctx, a, b, color, width) {
-  ctx.save();
-  ctx.lineCap = "round";
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 14;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.globalAlpha = 0.9;
-  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = "rgba(255,255,255,.85)";
-  ctx.lineWidth = Math.max(1, width * 0.35);
-  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-  ctx.restore();
-}
-
-/* Glowing joint dot: halo circle + white bright core */
-function glowDot(ctx, p, color, r) {
-  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2.6);
-  g.addColorStop(0, color);
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.6, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.55, 0, Math.PI * 2); ctx.fill();
-}
-
-/* Body skeleton: colored by body part (torso gold, arms cyan, legs purple, face pink) */
-const POSE_COLOR_OF = i =>
-  i <= 10 ? "#ff8fd8" :                       // face
-  (i === 11 || i === 12 || i === 23 || i === 24) ? "#ffd166" : // torso endpoints
-  (i <= 22) ? "#00e5ff" :                     // arms/hands
-  "#b388ff";                                  // legs/feet
-
-function drawPoseGlow(lm) {
-  const ctx = overlayCtx;
-  for (const c of PoseLandmarker.POSE_CONNECTIONS) {
-    const a = lm[c.start], b = lm[c.end];
-    if (a.visibility < 0.5 || b.visibility < 0.5) continue;
-    const pa = px(a), pb = px(b);
-    // gradient between the two endpoint colors
-    const grad = ctx.createLinearGradient(pa.x, pa.y, pb.x, pb.y);
-    grad.addColorStop(0, POSE_COLOR_OF(c.start));
-    grad.addColorStop(1, POSE_COLOR_OF(c.end));
-    glowLine(ctx, pa, pb, POSE_COLOR_OF(c.end), 4);
-    ctx.save();
-    ctx.strokeStyle = grad; ctx.lineWidth = 4; ctx.lineCap = "round";
-    ctx.globalAlpha = 0.7;
-    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
-    ctx.restore();
+  try {
+    setStep("st1", "active"); setStatus("Loading MediaPipe…", "Tasks Vision 0.10.14 from jsDelivr");
+    const vision = await import(CDN);
+    setStep("st1", "done"); setStep("st2", "active");
+    setStatus("Loading hand model…", "hand_landmarker.task (≈ 7.5 MB)");
+    const files = await vision.FilesetResolver.forVisionTasks(CDN + "/wasm");
+    const opts = (delegate) => ({
+      baseOptions: { modelAssetPath: MODEL, delegate },
+      runningMode: "VIDEO", numHands: 1,
+      minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5,
+    });
+    try { landmarker = await vision.HandLandmarker.createFromOptions(files, opts("GPU")); }
+    catch (e) { landmarker = await vision.HandLandmarker.createFromOptions(files, opts("CPU")); }
+    setStep("st2", "done");
+  } catch (e) {
+    console.error(e);
+    showError("Could not load MediaPipe.", "Check your internet connection and reload the page.");
+    return;
   }
-  for (let i = 0; i < lm.length; i++) {
-    if (i > 10 && lm[i].visibility < 0.5) continue;
-    if (i > 0 && i <= 10) continue;           // only keep the nose tip on the face, to avoid clutter
-    glowDot(overlayCtx, px(lm[i]), POSE_COLOR_OF(i), i === 0 ? 6 : 4.5);
+  if (state.mode === "mouse") return;
+  try {
+    setStep("st3", "active"); setStatus("Starting webcam…", "Please allow camera access in your browser.");
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, audio: false,
+    });
+    video.srcObject = stream;
+    await video.play();
+    setStep("st3", "done");
+    state.mode = "hand";
+    pip.hidden = false;
+    $("loader").hidden = true;
+  } catch (e) {
+    console.error(e);
+    showError("No webcam access.", "Allow the camera (lock icon in the address bar) and reload, or use the mouse.");
   }
 }
 
-/* Hands: each finger its own color, right hand in bright colors, left hand gray-blue */
-const FINGER_COLORS = ["#ff5f7a", "#ffd166", "#06f7a1", "#4cc9f0", "#c77dff"];
-function fingerOf(i) {
-  if (i >= 1  && i <= 4)  return 0;   // thumb
-  if (i >= 5  && i <= 8)  return 1;   // index
-  if (i >= 9  && i <= 12) return 2;   // middle
-  if (i >= 13 && i <= 16) return 3;   // ring
-  if (i >= 17 && i <= 20) return 4;   // pinky
-  return -1;                          // wrist/palm
-}
-
-function drawHandGlow(lm, isRight) {
-  const ctx = overlayCtx;
-  for (const c of HandLandmarker.HAND_CONNECTIONS) {
-    const f = Math.max(fingerOf(c.start), fingerOf(c.end));
-    const color = !isRight ? "#7a8ba8"
-      : (f >= 0 ? FINGER_COLORS[f] : "#ffffff");
-    glowLine(ctx, px(lm[c.start]), px(lm[c.end]), color, isRight ? 4 : 3);
-  }
-  for (let i = 0; i < lm.length; i++) {
-    const f = fingerOf(i);
-    const color = !isRight ? "#9fb0c8"
-      : (f >= 0 ? FINGER_COLORS[f] : "#ffffff");
-    // enlarge fingertip dots so they stand out
-    const tip = (i === 4 || i === 8 || i === 12 || i === 16 || i === 20);
-    glowDot(ctx, px(lm[i]), color, tip ? 6 : 4);
-  }
-  if (isRight) {
-    // right-hand label
-    const w = px(lm[0]);
-    ctx.save();
-    ctx.font = "bold 16px 'Microsoft JhengHei', sans-serif";
-    ctx.shadowColor = "#00ff88"; ctx.shadowBlur = 10;
-    ctx.fillStyle = "#00ff88";
-    ctx.scale(-1, 1);   // cancel out the CSS mirror so the text isn't reversed
-    ctx.fillText("Control Hand R", -w.x - 120, w.y + 28);
-    ctx.restore();
-  }
-}
-
-/* Openness of the hand: average fingertip-to-wrist distance / palm reference length */
-function computeOpenness(lm) {
-  const wrist = lm[0];
-  const palmLen = dist2D(wrist, lm[9]) || 1e-6;   // wrist -> middle finger base
-  const tips = [4, 8, 12, 16, 20];
-  let sum = 0;
-  for (const i of tips) sum += dist2D(wrist, lm[i]);
-  const ratio = (sum / tips.length) / palmLen;
-  // ~0.9 for a fist, ~1.9 fully open -> mapped to 0..1
-  return Math.min(1, Math.max(0, (ratio - 1.0) / 0.85));
-}
-
-let lastVideoTime = -1;
-
-function loop() {
-  requestAnimationFrame(loop);
-  if (video.currentTime === lastVideoTime) { drawParticles(); return; }
+function detect(now) {
+  if (state.mode !== "hand" || !landmarker || video.readyState < 2) return;
+  if (video.currentTime === lastVideoTime) return;
   lastVideoTime = video.currentTime;
-  const nowMs = performance.now();
-
-  const handRes = handLandmarker.detectForVideo(video, nowMs);
-  const poseRes = poseLandmarker.detectForVideo(video, nowMs);
-
-  /* --- draw detection results on top of the camera feed --- */
-  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-  if (poseRes.landmarks) {
-    for (const lm of poseRes.landmarks) drawPoseGlow(lm);
-  }
-
-  /* --- find the right hand (the image isn't mirrored, so the user's right hand is labeled "Left") --- */
-  let rightHand = null;
-  if (handRes.landmarks && handRes.landmarks.length) {
-    for (let i = 0; i < handRes.landmarks.length; i++) {
-      const label = handRes.handednesses?.[i]?.[0]?.categoryName;
-      const isRight = (label === "Left");
-      drawHandGlow(handRes.landmarks[i], isRight);
-      if (isRight) rightHand = handRes.landmarks[i];
-    }
-    // if only one hand is seen and it wasn't labeled right, use it anyway to avoid flicker at the detection boundary
-    if (!rightHand && handRes.landmarks.length === 1) rightHand = handRes.landmarks[0];
-  }
-
-  if (rightHand) {
-    handDetected = true;
-    rawOpenness = computeOpenness(rightHand);
-
-    /* distance estimate: the larger the hand appears, the closer to the camera -> smaller particle range */
-    const handSize = dist2D(rightHand[0], rightHand[9]);   // 0.04(far) ~ 0.30(near)
-    const near = Math.min(1, Math.max(0, (handSize - 0.05) / 0.22)); // 0=far 1=near
-    rawDistScale = 1.6 - near * 1.3;   // far: 1.6x -> near: 0.3x
-
-    /* fist -> open transition: switch shape + color */
-    const isClosed = rawOpenness < 0.25;
-    const isOpen   = rawOpenness > 0.65;
-    if (isClosed) wasClosed = true;
-    if (wasClosed && isOpen) {
-      wasClosed = false;
-      shapeIdx   = (shapeIdx + 1) % SHAPES.length;
-      paletteIdx = (paletteIdx + 1) % PALETTES.length;
-      applyShape();
-    }
-
-    /* update the info panel */
-    if (isClosed) {
-      handEl.textContent = "✊ Fist";
-      handEl.className = "closed";
-    } else if (isOpen) {
-      handEl.textContent = "🖐 Open";
-      handEl.className = "open";
-    } else {
-      handEl.textContent = "🤏 Half Open";
-      handEl.className = "open";
-    }
-    openPctEl.textContent = Math.round(rawOpenness*100) + "%";
-    openBarEl.style.width = (rawOpenness*100) + "%";
-    distEl.textContent = near > 0.66 ? "Near" : near > 0.33 ? "Mid" : "Far";
-    distBarEl.style.width = (near*100) + "%";
-  } else {
-    handDetected = false;
-    handEl.textContent = "Not Detected";
-    handEl.className = "none";
-  }
-
-  drawParticles();
+  const res = landmarker.detectForVideo(video, now);
+  const lms = res.landmarks && res.landmarks[0];
+  if (!lms) { hand = null; return; }
+  const hd = (res.handedness || res.handednesses || [])[0];
+  // MediaPipe assumes a mirrored (selfie) image; our input is not mirrored, so swap the label
+  const raw = hd && hd[0] ? hd[0].categoryName : "";
+  const label = raw === "Left" ? "Right" : raw === "Right" ? "Left" : "-";
+  hand = { lm: lms, label, metrics: analyseHand(lms, video.videoWidth / video.videoHeight) };
 }
 
-init().catch(err => {
-  loadingEl.innerHTML = `<div style="color:#ff5f7a;max-width:600px;text-align:center;line-height:1.8">
-    Initialization failed: ${err.message}<br>
-    Please make sure camera access is allowed, and open this page via http(s) or localhost (file:// cannot access the camera).
-  </div>`;
-  console.error(err);
+function drawPip() {
+  if (state.mode !== "hand" || video.readyState < 2) return;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const w = 320, h = Math.round((w * vh) / vw);
+  if (pipCanvas.height !== h) pipCanvas.height = h;
+  pctx.save();
+  pctx.translate(w, 0); pctx.scale(-1, 1);
+  pctx.drawImage(video, 0, 0, w, h);
+  pctx.restore();
+  if (!hand) return;
+  const col = MATERIALS[state.material].c;
+  const P = (i) => [(1 - hand.lm[i].x) * w, hand.lm[i].y * h];
+  pctx.save();
+  pctx.lineCap = "round";
+  pctx.shadowColor = col[0]; pctx.shadowBlur = 12;
+  pctx.strokeStyle = col[0]; pctx.lineWidth = 3;
+  for (const [a, b] of CONNECTIONS) {
+    const [x1, y1] = P(a), [x2, y2] = P(b);
+    pctx.beginPath(); pctx.moveTo(x1, y1); pctx.lineTo(x2, y2); pctx.stroke();
+  }
+  pctx.fillStyle = "#fff";
+  for (let i = 0; i < 21; i++) { const [x, y] = P(i); pctx.beginPath(); pctx.arc(x, y, [4, 8, 12, 16, 20].includes(i) ? 4 : 2.6, 0, TAU); pctx.fill(); }
+  pctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Mouse / keyboard mode (fallback without camera)
+// ---------------------------------------------------------------------------
+let pointerDown = false, downAt = 0, pointer = { x: 0, y: 0 };
+function startMouseMode() {
+  state.mode = "mouse";
+  $("loader").hidden = true;
+  $("hint").innerHTML = "<span>Click</span> next shape · <span>Hold + drag</span> magnet · <span>Space</span> blast · <span>Wheel</span> size";
+  state.handLabel = "Mouse";
+}
+$("mouseBtn").addEventListener("click", startMouseMode);
+fx.addEventListener("pointerdown", (e) => { pointerDown = true; downAt = performance.now(); pointer = { x: e.clientX, y: e.clientY }; });
+window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY }; });
+window.addEventListener("pointerup", () => {
+  if (pointerDown && state.mode === "mouse" && performance.now() - downAt < 250) nextShape();
+  pointerDown = false;
 });
+window.addEventListener("wheel", (e) => {
+  if (state.mode !== "mouse") return;
+  state.scaleTarget = clamp(state.scaleTarget * (e.deltaY > 0 ? 0.92 : 1.08), 0.5, 2.5);
+}, { passive: true });
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space") { e.preventDefault(); if (!state.blasting) blast(); }
+  if (e.key >= "1" && e.key <= String(SHAPES.length)) state.shape = Number(e.key) - 1;
+  if (e.key === "c" || e.key === "C") state.material = (state.material + 1) % MATERIALS.length;
+});
+window.addEventListener("keyup", (e) => { if (e.code === "Space") state.blasting = false; });
+
+// ---------------------------------------------------------------------------
+// HUD
+// ---------------------------------------------------------------------------
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const pad = (n) => String(n).padStart(2, "0");
+let fps = 60, hudTick = 0;
+function updateHud() {
+  const d = new Date();
+  $("clock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  $("date").textContent = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${DAYS[d.getDay()]}`;
+  const mouse = state.mode === "mouse";
+  $("hand").textContent = mouse ? "Mouse" : hand ? hand.label : "-";
+  $("gesture").textContent = mouse ? (state.blasting ? "Blast" : state.magnet ? "Magnet" : "-") : state.gesture;
+  const o = mouse ? 0 : Math.round(state.openness * 100);
+  $("openTxt").textContent = o + "%"; $("openBar").style.width = o + "%";
+  const near = state.scale;
+  $("distTxt").textContent = `${near < 0.9 ? "Far" : near > 1.8 ? "Near" : "Medium"} · ${near.toFixed(1)}x`;
+  $("distBar").style.width = ((near - 0.5) / 2) * 100 + "%";
+  $("shape").textContent = SHAPES[state.shape].name;
+  $("material").textContent = MATERIALS[state.material].name;
+  $("stats").textContent = `${particles.length} · ${Math.round(fps)}`;
+  const root = document.documentElement.style;
+  root.setProperty("--accent", MATERIALS[state.material].c[0]);
+  root.setProperty("--accent2", MATERIALS[state.material].c[1]);
+}
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+let last = performance.now(), time = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now; time += dt;
+  fps = lerp(fps, 1 / Math.max(dt, 1e-3), 0.05);
+  const k = dt * 60;                                   // frame-rate independent factor
+
+  detect(now);
+  if (state.mode === "hand") updateGesture(hand);
+  if (state.mode === "mouse") state.magnet = pointerDown && performance.now() - downAt > 250 ? { ...pointer } : null;
+  state.scale = lerp(state.scale, state.scaleTarget, 0.12 * k);
+
+  const shape = SHAPES[state.shape];
+  const R = Math.min(W, H) * 0.24 * state.scale;
+  const cx = W / 2, cy = H / 2 + H * 0.02;
+  const spring = 0.045;
+  const steps = Math.max(1, Math.ceil(k));             // fixed small physics steps keep it stable at low fps
+  const ks = k / steps;
+  const damp = Math.pow(state.blasting ? 0.995 : 0.86, ks);
+
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "rgba(5, 6, 12, 0.3)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.42;
+  const sprites = SPRITES[state.material];
+  const sizeScale = 0.75 + 0.35 * Math.sqrt(state.scale);
+
+  for (const p of particles) {
+    let tx, ty;
+    if (state.magnet) {
+      const a = p.u * TAU + time * (2 + p.v * 3);
+      const r = 8 + p.v * Math.min(W, H) * 0.09;
+      tx = state.magnet.x + Math.cos(a) * r; ty = state.magnet.y + Math.sin(a) * r;
+    } else {
+      const [ux, uy] = shape.f(p.u, p.v, time);
+      tx = cx + ux * R; ty = cy + uy * R;
+    }
+    for (let s = 0; s < steps; s++) {
+      if (!state.blasting) { p.vx += (tx - p.x) * spring * ks; p.vy += (ty - p.y) * spring * ks; }
+      p.vx *= damp; p.vy *= damp;
+      p.x += p.vx * ks; p.y += p.vy * ks;
+    }
+
+    let s = p.size * sizeScale;
+    if (p.twinkle) s *= 1 + 1.2 * Math.max(0, Math.sin(time * 4 + p.u * 60)) ** 6;
+    ctx.drawImage(sprites[p.ci], p.x - s * 1.5, p.y - s * 1.5, s * 3, s * 3);
+  }
+  ctx.globalAlpha = 1;
+
+  drawPip();
+  if (++hudTick % 4 === 0) updateHud();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+updateHud();
+init();
 </script>
 </body>
 </html>
