@@ -54,6 +54,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .models div{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono)}
 .models i{font-style:normal;color:var(--muted)} .models i.on{color:var(--accent2)} .models i.cur{color:var(--gold)}
 .hint{font-size:12.5px;color:var(--muted);line-height:1.5}
+/* task list (left) */
+.tasklist{display:grid;gap:5px}
+.tasklist button{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:8px 10px;cursor:pointer;font-weight:500}
+.tasklist button span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tasklist button[aria-pressed="true"]{border-color:var(--accent);background:#1a2440;color:#fff}
+.tasklist button[aria-pressed="true"] span{color:var(--accent)}
+/* custom dropdown above the video - stays open until a task is picked (so it shows on screenshots) */
+.dd{position:relative}
+.dd-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--accent);background:#161f36;color:var(--text);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600}
+.dd-btn small{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:500}
+.dd-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;transition:transform .2s}
+.dd[data-open="true"] .dd-btn svg{transform:rotate(180deg)}
+.dd-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:360px;background:#141b29;border:1px solid #2f3b55;border-radius:12px;padding:6px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.dd-menu button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:8px;cursor:pointer;text-align:left;font-weight:500}
+.dd-menu button:hover,.dd-menu button:focus-visible{background:#1d2740}
+.dd-menu button .ck{width:16px;color:var(--accent2);font-weight:700}
+.dd-menu button span.m{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.dd-menu button[aria-selected="true"]{background:#1a2440}
+.dd-menu button[aria-selected="true"] span.m{color:var(--accent)}
 
 .stage-wrap{display:grid;gap:12px;align-content:start}
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -107,15 +126,7 @@ footer{padding:0 22px 18px;color:var(--muted);font-size:12px}
   <div class="stack">
     <section class="panel">
       <h2>Task</h2>
-      <select id="task" aria-label="YOLO26 task">
-        <option value="detect">Object detection · yolo26n</option>
-        <option value="segment">Instance segmentation · yolo26n-seg</option>
-        <option value="semantic">Semantic segmentation · yolo26n-sem</option>
-        <option value="depth">Depth estimation · yolo26n-depth</option>
-        <option value="classify">Classification · yolo26n-cls</option>
-        <option value="pose">Pose estimation · yolo26n-pose</option>
-        <option value="obb">Oriented boxes (OBB) · yolo26n-obb</option>
-      </select>
+      <div class="tasklist" id="taskList" role="group" aria-label="YOLO26 task"></div>
       <p class="hint" id="taskHint" style="margin:10px 0 0"></p>
     </section>
 
@@ -152,6 +163,11 @@ footer{padding:0 22px 18px;color:var(--muted);font-size:12px}
 
   <div class="stage-wrap">
     <div class="toolbar">
+      <div class="dd" id="dd" data-open="false">
+        <button class="dd-btn" type="button" id="ddBtn" aria-haspopup="listbox" aria-expanded="false"><span id="ddLabel">Object detection</span><small id="ddModel">yolo26n</small>
+          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="dd-menu" id="ddMenu" role="listbox" aria-label="Choose a YOLO26 task" hidden></div>
+      </div>
       <span class="title" id="title">Live webcam <small id="sub">all tasks on the same video</small></span>
       <span class="spacer"></span>
       <button class="btn" type="button" id="snap">Save snapshot</button>
@@ -203,7 +219,7 @@ const TASKS = {
   pose:     { label: "Pose estimation", model: "yolo26n-pose", file: "yolo26n-pose.onnx", size: 320,
               hint: "17 body keypoints per person.", about: "Finds people and 17 body keypoints each (eyes, shoulders, elbows, wrists, hips, knees, ankles) and connects them to a skeleton." },
   obb:      { label: "Oriented boxes (OBB)", model: "yolo26n-obb", file: "yolo26n-obb.onnx", size: 320,
-              hint: "Rotated boxes – hold a phone or book at an angle.", about: "OBB = oriented bounding boxes: the box rotates with the object, so a phone held at an angle gets a tilted box instead of a too-large upright one. The label shows the rotation angle. The model was trained on aerial images (DOTA), so everyday objects get aerial class names such as “ship” or “small vehicle” and lower scores – that is why the confidence is set to 20 % for this task." },
+              hint: "Rotated boxes – hold a phone or book at an angle.", about: "OBB = oriented bounding boxes: the box rotates with the object, so a phone held at an angle gets a tilted box instead of a too-large upright one. yolo26n-obb was trained on aerial images (DOTA), so it only knows classes like “ship” or “small vehicle” and scores everyday objects low (confidence set to 20 %). To make tilted everyday objects work, the same frame also runs through yolo26n-seg: the principal axis of each object mask (PCA) gives a rotated box with its tilt angle (turquoise boxes)." },
 };
 const CITYSCAPES = [[128,64,128],[244,35,232],[70,70,70],[102,102,156],[190,153,153],[153,153,153],[250,170,30],[220,220,0],[107,142,35],[152,251,152],[70,130,180],[220,20,60],[255,0,0],[0,0,142],[0,0,70],[0,60,100],[0,80,100],[0,0,230],[119,11,32]];
 const SKELETON = [[15,13],[13,11],[16,14],[14,12],[11,12],[5,11],[6,12],[5,6],[5,7],[6,8],[7,9],[8,10],[1,2],[0,1],[0,2],[1,3],[2,4],[3,5],[4,6]];
@@ -296,6 +312,42 @@ const unX = (x, L) => (x - L.px) / L.s, unY = (y, L) => (y - L.py) / L.s;
 // ===========================================================================
 // Inference + decoding for each task
 // ===========================================================================
+function decodeSeg(out, sess, conf, L, maxN = 20) {
+  const d = out[sess.outputNames[0]].data, N = 2100, P = out[sess.outputNames[1]].data, cand = [];
+  for (let j = 0; j < N; j++) {
+    let best = 0, cls = 0; for (let c = 0; c < 80; c++) { const v = d[(4 + c) * N + j]; if (v > best) { best = v; cls = c; } }
+    if (best < conf) continue;
+    const cx = d[j], cy = d[N + j], bw = d[2 * N + j], bh = d[3 * N + j];
+    cand.push({ x1: cx - bw / 2, y1: cy - bh / 2, x2: cx + bw / 2, y2: cy + bh / 2, score: best, cls, j });
+  }
+  return nms(cand, 0.5, maxN).map((b) => {
+    const m = new Float32Array(6400);             // 80x80 mask = sigmoid(coeffs · protos), cropped to the box
+    for (let k = 0; k < 32; k++) { const ck = d[(84 + k) * N + b.j]; for (let p = 0; p < 6400; p++) m[p] += ck * P[k * 6400 + p]; }
+    const bx1 = b.x1 / 4, by1 = b.y1 / 4, bx2 = b.x2 / 4, by2 = b.y2 / 4;
+    for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) { const p = y * 80 + x; m[p] = (x < bx1 || x > bx2 || y < by1 || y > by2) ? 0 : 1 / (1 + Math.exp(-m[p])); }
+    return { ...b, mask: m, x1: unX(b.x1, L), y1: unY(b.y1, L), x2: unX(b.x2, L), y2: unY(b.y2, L) };
+  });
+}
+// Oriented box from a segmentation mask: principal axis of the mask pixels (PCA),
+// then the extent along both axes -> rotated rectangle that follows a tilted object.
+function maskToOriented(b, L) {
+  let n = 0, mx = 0, my = 0; const pts = [];
+  for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) if (b.mask[y * 80 + x] > 0.5) {
+    const X = unX((x + 0.5) * 4, L), Y = unY((y + 0.5) * 4, L); pts.push(X, Y); mx += X; my += Y; n++;
+  }
+  if (n < 12) return null;
+  mx /= n; my /= n;
+  let sxx = 0, syy = 0, sxy = 0;
+  for (let i = 0; i < pts.length; i += 2) { const dx = pts[i] - mx, dy = pts[i + 1] - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; }
+  const th = 0.5 * Math.atan2(2 * sxy, sxx - syy), ux = Math.cos(th), uy = Math.sin(th);
+  let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+  for (let i = 0; i < pts.length; i += 2) {
+    const dx = pts[i] - mx, dy = pts[i + 1] - my, pa = dx * ux + dy * uy, pb = -dx * uy + dy * ux;
+    a0 = Math.min(a0, pa); a1 = Math.max(a1, pa); b0 = Math.min(b0, pb); b1 = Math.max(b1, pb);
+  }
+  const cell = 4 / L.s, ca = (a0 + a1) / 2, cb = (b0 + b1) / 2;
+  return { cx: mx + ux * ca - uy * cb, cy: my + uy * ca + ux * cb, bw: a1 - a0 + cell, bh: b1 - b0 + cell, a: th, score: b.score, cls: b.cls, fromMask: true };
+}
 async function infer() {
   const size = sourceSize(); if (!size) return;
   const [w, h] = size, T = TASKS[task], S = T.size, conf = $("conf").value / 100;
@@ -314,20 +366,7 @@ async function infer() {
       r.boxes.push({ x1: unX(d[i * 6], L), y1: unY(d[i * 6 + 1], L), x2: unX(d[i * 6 + 2], L), y2: unY(d[i * 6 + 3], L), score: sc, cls: d[i * 6 + 5] | 0 });
     }
   } else if (task === "segment") {               // [1,116,2100] cx cy w h, 80 scores, 32 coeffs + protos [1,32,80,80]
-    const d = o.data, N = 2100, P = out[sess.outputNames[1]].data, cand = [];
-    for (let j = 0; j < N; j++) {
-      let best = 0, cls = 0; for (let c = 0; c < 80; c++) { const v = d[(4 + c) * N + j]; if (v > best) { best = v; cls = c; } }
-      if (best < conf) continue;
-      const cx = d[j], cy = d[N + j], bw = d[2 * N + j], bh = d[3 * N + j];
-      cand.push({ x1: cx - bw / 2, y1: cy - bh / 2, x2: cx + bw / 2, y2: cy + bh / 2, score: best, cls, j });
-    }
-    r.boxes = nms(cand, 0.5, 20).map((b) => {
-      const m = new Float32Array(6400);           // 80x80 mask = sigmoid(coeffs · protos), cropped to the box
-      for (let k = 0; k < 32; k++) { const ck = d[(84 + k) * N + b.j]; for (let p = 0; p < 6400; p++) m[p] += ck * P[k * 6400 + p]; }
-      const bx1 = b.x1 / 4, by1 = b.y1 / 4, bx2 = b.x2 / 4, by2 = b.y2 / 4;
-      for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) { const p = y * 80 + x; m[p] = (x < bx1 || x > bx2 || y < by1 || y > by2) ? 0 : 1 / (1 + Math.exp(-m[p])); }
-      return { ...b, mask: m, x1: unX(b.x1, L), y1: unY(b.y1, L), x2: unX(b.x2, L), y2: unY(b.y2, L) };
-    });
+    r.boxes = decodeSeg(out, sess, conf, L);
   } else if (task === "semantic") {              // [1,320,320] class id per pixel
     r.map = o.data; r.S = S;
   } else if (task === "depth") {                 // [1,1,320,320] distance per pixel
@@ -355,6 +394,13 @@ async function infer() {
       cand.push({ x1: cx - R, y1: cy - R, x2: cx + R, y2: cy + R, cx, cy, bw, bh, a, score: best, cls });
     }
     r.boxes = nms(cand, 0.4, 50).map((b) => ({ ...b, cx: unX(b.cx, L), cy: unY(b.cy, L), bw: b.bw / L.s, bh: b.bh / L.s }));
+    // Everyday objects: the OBB model only knows aerial classes (plane, ship, vehicle ...).
+    // So the same frame also goes through yolo26n-seg, and every mask gets a rotated box (PCA).
+    const segSess = await getSession("segment");
+    const t1 = performance.now();
+    const segOut = await segSess.run({ [segSess.inputNames[0]]: toTensor(S) });
+    lastInf += performance.now() - t1;
+    r.objects = decodeSeg(segOut, segSess, Math.max(conf, 0.25), L, 10).filter((b) => b.cls !== 0).map((b) => maskToOriented(b, L)).filter(Boolean);
   }
   result = r;
   updateInsight();
@@ -438,6 +484,7 @@ function draw() {
         const top = pts.reduce((m, q) => (q[1] < m[1] ? q : m), pts[0]);
         drawLabel(top[0], top[1], `${names[b.cls]} ${Math.round(b.score * 100)}% · ${tiltDeg(b)}°`, color(b.cls), fs);
       }
+      for (const b of r.objects || []) drawOriented(b, META.segment.names[b.cls], "#38d6b4", lw * 1.4, fs, k);
     }
   }
   // HUD
@@ -449,6 +496,18 @@ function draw() {
   ctx.fillStyle = "#e8edf5"; ctx.fillText(hud.slice(1), 20 / k, 10 / k + fs * 1.3);
   ctx.font = `500 ${fs * 0.8}px "JetBrains Mono", monospace`; ctx.fillStyle = "rgba(232,237,245,.75)";
   ctx.fillText("YOLO26 Multi-Task Lab · Moritz Binder", 10 / k, h - 10 / k);
+}
+function drawOriented(b, name, col, lw, fs, k) {
+  const c = Math.cos(b.a), s = Math.sin(b.a), hw = b.bw / 2, hh = b.bh / 2;
+  const pts = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => [b.cx + x * c - y * s, b.cy + x * s + y * c]);
+  ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(...q) : ctx.moveTo(...q))); ctx.closePath();
+  ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = col; ctx.fill(); ctx.restore();
+  ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.stroke();
+  const along = b.bw >= b.bh ? [c, s] : [-s, c], Lh = Math.max(b.bw, b.bh) / 2;
+  ctx.setLineDash([8 / k, 6 / k]); ctx.beginPath(); ctx.moveTo(b.cx - along[0] * Lh, b.cy - along[1] * Lh); ctx.lineTo(b.cx + along[0] * Lh, b.cy + along[1] * Lh); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(b.cx, b.cy, lw * 1.2, 0, 7); ctx.fill();
+  const top = pts.reduce((m, q) => (q[1] < m[1] ? q : m), pts[0]);
+  drawLabel(top[0], top[1], `${name} ${Math.round(b.score * 100)}% · ${tiltDeg(b)}°`, col, fs);
 }
 // tilt of the long side against the vertical, in degrees (0 = upright, ± = tilted left/right)
 function tiltDeg(b) { let a = (b.bw >= b.bh ? b.a + Math.PI / 2 : b.a) * 180 / Math.PI; a = ((a + 90) % 180 + 180) % 180 - 90; return Math.round(a); }
@@ -468,11 +527,14 @@ function updateInsight() {
   const names = META[task].names;
   if (task === "obb") {
     $("insTitle").textContent = "Rotated objects";
-    const best = r.boxes[0];
-    $("insight").innerHTML = (best ? `<div class="bars"><div class="bar"><span class="n">Tilt of strongest box</span><span class="p">${tiltDeg(best)}°</span></div>
-      <div class="bar"><span class="n">Rotated boxes</span><span class="p">${r.boxes.length}</span></div></div><div style="margin-top:12px"></div>` : "") +
-      bars(counts(r.boxes, names), (x) => color(x.cls)) +
-      `<p class="hint" style="margin:10px 0 0">Hold a phone, book or bottle at an angle – the box turns with it. 0° = upright.</p>`;
+    const objs = r.objects || [], segNames = META.segment.names;
+    const objRows = objs.map((b) => `<div class="bar"><span class="n">${segNames[b.cls]}</span><span class="p">${tiltDeg(b)}° · ${Math.round(b.score * 100)}%</span></div>`).join("");
+    $("insight").innerHTML =
+      `<div class="hint" style="margin-bottom:6px;color:#38d6b4;font-weight:600">Everyday objects (rotated box from the mask)</div>` +
+      (objs.length ? `<div class="bars">${objRows}</div>` : `<div class="empty">Hold a phone, book or bottle into the camera.</div>`) +
+      `<div class="hint" style="margin:14px 0 6px;font-weight:600">yolo26n-obb (aerial classes)</div>` +
+      (r.boxes.length ? `<div class="bars"><div class="bar"><span class="n">Tilt of strongest box</span><span class="p">${tiltDeg(r.boxes[0])}°</span></div></div><div style="margin-top:8px"></div>` + bars(counts(r.boxes, names), (x) => color(x.cls)) : `<div class="empty">No aerial-class object in view.</div>`) +
+      `<p class="hint" style="margin:10px 0 0">Tilt the object – the box turns with it. 0° = upright, minus = tilted left, plus = tilted right.</p>`;
   } else if (task === "detect" || task === "segment") {
     $("insTitle").textContent = "Objects in view"; $("insight").innerHTML = bars(counts(r.boxes, names), (x) => color(x.cls));
   } else if (task === "classify") {
@@ -537,10 +599,20 @@ function setTask(t) {
   $("taskHint").textContent = TASKS[t].hint; $("about").innerHTML = `<p>${TASKS[t].about}</p>`;
   $("tTask").textContent = TASKS[t].label; setChip("chipTask", "Task", TASKS[t].model);
   $("insight").innerHTML = `<div class="empty">Loading…</div>`;
-  renderModels();
+  renderModels(); buildTaskUI();
   if (source && source.tagName === "IMG") runOnce();
 }
-$("task").onchange = (e) => setTask(e.target.value);
+// task list (left) + custom dropdown (above the video)
+function buildTaskUI() {
+  $("taskList").innerHTML = Object.entries(TASKS).map(([k, v]) => `<button type="button" data-t="${k}" aria-pressed="${k === task}">${v.label}<span>${v.model}</span></button>`).join("");
+  $("ddMenu").innerHTML = Object.entries(TASKS).map(([k, v]) => `<button type="button" role="option" data-t="${k}" aria-selected="${k === task}"><span class="ck">${k === task ? "✓" : ""}</span>${v.label}<span class="m">${v.model}</span></button>`).join("");
+  $("ddLabel").textContent = TASKS[task].label; $("ddModel").textContent = TASKS[task].model;
+  document.querySelectorAll("#taskList button, #ddMenu button").forEach((b) => b.onclick = () => { setDropdown(false); if (b.dataset.t !== task) setTask(b.dataset.t); });
+}
+function setDropdown(open) { $("dd").dataset.open = open; $("ddMenu").hidden = !open; $("ddBtn").setAttribute("aria-expanded", open); }
+$("ddBtn").onclick = (e) => { e.stopPropagation(); setDropdown($("ddMenu").hidden); };
+document.addEventListener("click", (e) => { if (!$("dd").contains(e.target)) setDropdown(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") setDropdown(false); });
 $("gpu").onchange = () => { result = null; if (source && source.tagName === "IMG") runOnce(); };
 document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { every = +b.dataset.n; document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); });
 $("conf").oninput = () => { $("oConf").textContent = $("conf").value + " %"; if (source && source.tagName === "IMG") runOnce(); };
