@@ -3,9 +3,10 @@
 importScripts("../shared/ort/ort.webgpu.min.js");
 ort.env.wasm.wasmPaths = new URL("../shared/ort/", self.location.href).href;
 // multi-threaded WASM works because the local server sends COOP/COEP headers
-ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 2) : 1;
+const forced = Number(new URL(self.location.href).searchParams.get("threads")) || 0;   // ?threads=1 = fallback
+ort.env.wasm.numThreads = forced || (self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 2) : 1);
 
-const STYLES = ["candy", "mosaic", "rain-princess", "udnie", "pointilism"];
+const STYLES = ["candy", "mosaic", "rain-princess", "udnie", "pointilism", "starry_night", "la_muse", "the_scream", "the_wave", "feathers", "composition_vii"];
 let sessions = {}, backend = "wasm";
 
 async function init(useGpu) {

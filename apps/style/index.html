@@ -58,7 +58,9 @@ select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;p
 .toolbar .title{font-family:var(--display);font-size:20px;font-weight:600}
 .toolbar .spacer{flex:1}
 
-.gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:16px}
+.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+.art.orig{cursor:default}
+.art .cap em{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--accent2);margin-left:6px}
 @media (max-width:1100px){.gallery{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:640px){.gallery{grid-template-columns:repeat(2,1fr)}}
 .art{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;text-align:left;padding:0}
@@ -78,7 +80,7 @@ footer{padding:0 24px 18px;color:var(--muted);font-size:12px}
   <div class="mark" aria-hidden="true"></div>
   <h1>Neural Style Studio <span>· Unit 3.3</span></h1>
   <div class="chips">
-    <span class="chip">Models <b>5 styles · fast NST</b></span>
+    <span class="chip">Models <b>11 styles · fast NST</b></span>
     <span class="chip" id="chipBackend">Backend <b>–</b></span>
     <span class="chip" id="chipStatus">Status <b>loading</b></span>
   </div>
@@ -128,7 +130,7 @@ footer{padding:0 24px 18px;color:var(--muted);font-size:12px}
       <p>The original method optimises every image for minutes. Here each style is a small <b>feed-forward CNN</b> trained once with <b>perceptual losses</b> (Johnson et al., ECCV 2016), so one image takes a fraction of a second.</p>
       <p class="hint" style="margin:0 0 8px">Browser-only: no Python backend. The models run with ONNX Runtime Web (WASM, multi-threaded) inside a Web Worker, so the page never freezes.</p>
       <p class="hint" style="margin:0 0 8px">Models: ONNX Model Zoo fast neural style “-9” versions (candy, mosaic, rain princess, udnie, pointilism). <b>Free for personal or research use.</b></p>
-      <p class="hint" style="margin:0">Optional extra styles (starry night, la muse, the scream …) exist only as Torch7 <code>.t7</code> files; they could not be converted reliably to ONNX, so they were skipped.</p>
+      <p class="hint" style="margin:0">+ 6 extra styles from Johnson's fast-neural-style (starry night, la muse, the scream, the wave, feathers, composition VII): converted from Torch7 <code>.t7</code> to ONNX and checked against the original (max. difference 0.2 of 255 colour levels).</p>
     </section>
   </div>
 
@@ -147,7 +149,7 @@ footer{padding:0 24px 18px;color:var(--muted);font-size:12px}
     </section>
   </div>
 </main>
-<footer>Fast neural style models (Johnson et al. 2016) from the ONNX Model Zoo · ONNX Runtime Web · Moritz Binder, HS Pforzheim</footer>
+<footer>Fast neural style models (Johnson et al. 2016): 5 from the ONNX Model Zoo + 6 converted from the original Torch7 files · ONNX Runtime Web · Moritz Binder, HS Pforzheim</footer>
 <video id="video" playsinline muted hidden></video>
 
 <script>
@@ -157,6 +159,12 @@ const STYLES = [
   { id: "rain-princess", name: "Rain Princess", desc: "after Leonid Afremov" },
   { id: "udnie", name: "Udnie", desc: "after Francis Picabia, 1913" },
   { id: "pointilism", name: "Pointillism", desc: "dots in the manner of Seurat" },
+  { id: "starry_night", name: "Starry Night", desc: "after Vincent van Gogh, 1889", extra: true },
+  { id: "la_muse", name: "La Muse", desc: "after Pablo Picasso, 1935", extra: true },
+  { id: "the_scream", name: "The Scream", desc: "after Edvard Munch, 1893", extra: true },
+  { id: "the_wave", name: "The Wave", desc: "after Katsushika Hokusai, c. 1831", extra: true },
+  { id: "feathers", name: "Feathers", desc: "colourful feather painting", extra: true },
+  { id: "composition_vii", name: "Composition VII", desc: "after Wassily Kandinsky, 1913", extra: true },
 ];
 const $ = (id) => document.getElementById(id);
 const results = {};                       // style id -> ImageData (stylised, full strength)
@@ -165,14 +173,25 @@ let srcImg = null, selected = "candy", mode = "photo", camRunning = false, ready
 function status(t) { $("chipStatus").innerHTML = `Status <b>${t}</b>`; }
 
 // ---------- Web Worker running ONNX Runtime Web ----------
-const worker = new Worker("worker.js");
-let msgId = 0; const pending = new Map();
-worker.onmessage = (e) => { const p = pending.get(e.data.id); if (p) { pending.delete(e.data.id); e.data.ok ? p.res(e.data) : p.rej(new Error(e.data.error)); } };
+let worker, msgId = 0; const pending = new Map();
+function startWorker(threads) {
+  if (worker) worker.terminate();
+  worker = new Worker(threads ? `worker.js?threads=${threads}` : "worker.js");
+  worker.onmessage = (e) => { const p = pending.get(e.data.id); if (p) { pending.delete(e.data.id); e.data.ok ? p.res(e.data) : p.rej(new Error(e.data.error)); } };
+}
+startWorker();
 function call(msg, transfer = []) { return new Promise((res, rej) => { const id = ++msgId; pending.set(id, { res, rej }); worker.postMessage({ ...msg, id }, transfer); }); }
+const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms));
 
 async function loadModels() {
   ready = false; status("loading models");
-  const r = await call({ type: "init", useGpu: $("useGpu").checked });
+  let r;
+  try { r = await Promise.race([call({ type: "init", useGpu: $("useGpu").checked }), timeout(45000)]); }
+  catch (e) {                                   // safety net: restart with a single WASM thread
+    console.warn("Multi-threaded start failed (" + e.message + ") - falling back to 1 thread.");
+    pending.clear(); startWorker(1);
+    r = await call({ type: "init", useGpu: $("useGpu").checked });
+  }
   const name = r.backend === "webgpu" ? "WebGPU" : r.backend.startsWith("wasm (") ? "WASM · no GPU" : `WASM · ${r.threads} threads`;
   $("chipBackend").innerHTML = `Backend <b>${name}</b>`;
   if (!r.isolated) console.warn("Page is not cross-origin isolated – start it with serve.py for multi-threading.");
@@ -180,12 +199,14 @@ async function loadModels() {
 }
 
 function buildGallery() {
-  $("gallery").innerHTML = STYLES.map((s) => `
+  $("gallery").innerHTML = `
+    <div class="art orig"><div class="pic" id="pic-original">${srcImg ? "" : "–"}</div>
+      <div class="cap"><b>Original photo</b><span>your input</span></div></div>` + STYLES.map((s) => `
     <button type="button" class="art" data-id="${s.id}" aria-pressed="${s.id === selected}">
       <div class="pic" id="pic-${s.id}">${srcImg ? '<div class="spinner"></div>' : "–"}</div>
-      <div class="cap"><i id="t-${s.id}"></i><b>${s.name}</b><span>${s.desc}</span></div>
+      <div class="cap"><i id="t-${s.id}"></i><b>${s.name}${s.extra ? "<em>.t7 → ONNX</em>" : ""}</b><span>${s.desc}</span></div>
     </button>`).join("");
-  document.querySelectorAll(".art").forEach((b) => b.addEventListener("click", () => select(b.dataset.id)));
+  document.querySelectorAll(".art[data-id]").forEach((b) => b.addEventListener("click", () => select(b.dataset.id)));
 }
 
 // ---------- core: run one style on a canvas-sized image ----------
@@ -233,6 +254,7 @@ async function processPhoto() {
   const oc = $("orig"); oc.width = w; oc.height = h; oc.getContext("2d").putImageData(origData, 0, 0);
   $("origEmpty").hidden = true;
   buildGallery(); status("styling");
+  $("pic-original").style.backgroundImage = `url(${$("orig").toDataURL("image/jpeg", 0.85)})`;
   const t0 = performance.now();
   for (const s of STYLES) {
     const t = performance.now();
@@ -243,7 +265,7 @@ async function processPhoto() {
     $(`pic-${s.id}`).innerHTML = ""; $(`pic-${s.id}`).style.backgroundImage = `url(${thumb.toDataURL("image/jpeg", 0.8)})`;
     if (s.id === selected) showSelected();
   }
-  $("timing").textContent = `5 styles · ${w}×${h} px · ${((performance.now() - t0) / 1000).toFixed(1)} s total`;
+  $("timing").textContent = `${STYLES.length} styles · ${w}×${h} px · ${((performance.now() - t0) / 1000).toFixed(1)} s total`;
   status("done"); $("dl").disabled = false;
 }
 function showSelected() {
