@@ -248,7 +248,7 @@ async function processPhoto() {
 }
 function showSelected() {
   const s = STYLES.find((x) => x.id === selected);
-  $("selTitle").textContent = `${s.name} — ${s.desc}`;
+  $("selTitle").textContent = (mode === "cam" ? "Live webcam · " : "") + `${s.name} — ${s.desc}`;
   $("outTag").textContent = `Stylised · ${s.name}`;
   if (mode !== "photo" || !results[selected]) return;
   const c = $("out"); c.width = origData.width; c.height = origData.height;
@@ -282,6 +282,7 @@ async function startCam() {
     await video.play();
   } catch (e) { status("no camera"); $("outEmpty").textContent = "No webcam access. Allow the camera in the browser."; return; }
   camRunning = true; $("camBtn").textContent = "Stop webcam"; status("live");
+  showSelected();
   $("origEmpty").hidden = true; $("outEmpty").hidden = true;
   camLoop();
 }
