@@ -203,7 +203,7 @@ const TASKS = {
   pose:     { label: "Pose estimation", model: "yolo26n-pose", file: "yolo26n-pose.onnx", size: 320,
               hint: "17 body keypoints per person.", about: "Finds people and 17 body keypoints each (eyes, shoulders, elbows, wrists, hips, knees, ankles) and connects them to a skeleton." },
   obb:      { label: "Oriented boxes (OBB)", model: "yolo26n-obb", file: "yolo26n-obb.onnx", size: 320,
-              hint: "Rotated boxes, trained on aerial images.", about: "Draws rotated boxes that fit tilted objects. The model is trained on aerial images (DOTA: planes, ships, vehicles …). Point the camera at a top-down photo of a parking lot or harbour, or test with an image." },
+              hint: "Rotated boxes – hold a phone or book at an angle.", about: "OBB = oriented bounding boxes: the box rotates with the object, so a phone held at an angle gets a tilted box instead of a too-large upright one. The label shows the rotation angle. The model was trained on aerial images (DOTA), so everyday objects get aerial class names such as “ship” or “small vehicle” and lower scores – that is why the confidence is set to 20 % for this task." },
 };
 const CITYSCAPES = [[128,64,128],[244,35,232],[70,70,70],[102,102,156],[190,153,153],[153,153,153],[250,170,30],[220,220,0],[107,142,35],[152,251,152],[70,130,180],[220,20,60],[255,0,0],[0,0,142],[0,0,70],[0,60,100],[0,80,100],[0,0,230],[119,11,32]];
 const SKELETON = [[15,13],[13,11],[16,14],[14,12],[11,12],[5,11],[6,12],[5,6],[5,7],[6,8],[7,9],[8,10],[1,2],[0,1],[0,2],[1,3],[2,4],[3,5],[4,6]];
@@ -428,8 +428,15 @@ function draw() {
       for (const b of r.boxes) {
         const c = Math.cos(b.a), s = Math.sin(b.a), hw = b.bw / 2, hh = b.bh / 2;
         const pts = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => [b.cx + x * c - y * s, b.cy + x * s + y * c]);
-        ctx.strokeStyle = color(b.cls); ctx.lineWidth = lw; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(...q) : ctx.moveTo(...q))); ctx.closePath(); ctx.stroke();
-        drawLabel(pts[0][0], pts[0][1], `${names[b.cls]} ${Math.round(b.score * 100)}%`, color(b.cls), fs);
+        ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(...q) : ctx.moveTo(...q))); ctx.closePath();
+        ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = color(b.cls); ctx.fill(); ctx.restore();
+        ctx.strokeStyle = color(b.cls); ctx.lineWidth = lw; ctx.stroke();
+        // orientation line along the long side of the box
+        const along = b.bw >= b.bh ? [c, s] : [-s, c], L = Math.max(b.bw, b.bh) / 2;
+        ctx.setLineDash([8 / k, 6 / k]); ctx.beginPath(); ctx.moveTo(b.cx - along[0] * L, b.cy - along[1] * L); ctx.lineTo(b.cx + along[0] * L, b.cy + along[1] * L); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(b.cx, b.cy, lw * 1.5, 0, 7); ctx.fill();
+        const top = pts.reduce((m, q) => (q[1] < m[1] ? q : m), pts[0]);
+        drawLabel(top[0], top[1], `${names[b.cls]} ${Math.round(b.score * 100)}% · ${tiltDeg(b)}°`, color(b.cls), fs);
       }
     }
   }
@@ -443,6 +450,8 @@ function draw() {
   ctx.font = `500 ${fs * 0.8}px "JetBrains Mono", monospace`; ctx.fillStyle = "rgba(232,237,245,.75)";
   ctx.fillText("YOLO26 Multi-Task Lab · Moritz Binder", 10 / k, h - 10 / k);
 }
+// tilt of the long side against the vertical, in degrees (0 = upright, ± = tilted left/right)
+function tiltDeg(b) { let a = (b.bw >= b.bh ? b.a + Math.PI / 2 : b.a) * 180 / Math.PI; a = ((a + 90) % 180 + 180) % 180 - 90; return Math.round(a); }
 function hslToRgb(h, s, l) { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l); const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [255 * f(0), 255 * f(8), 255 * f(4)]; }
 
 // ===========================================================================
@@ -457,7 +466,14 @@ function counts(list, names) { const c = {}; list.forEach((b) => (c[b.cls] = (c[
 function updateInsight() {
   const r = result; if (!r || !META) return;
   const names = META[task].names;
-  if (task === "detect" || task === "segment" || task === "obb") {
+  if (task === "obb") {
+    $("insTitle").textContent = "Rotated objects";
+    const best = r.boxes[0];
+    $("insight").innerHTML = (best ? `<div class="bars"><div class="bar"><span class="n">Tilt of strongest box</span><span class="p">${tiltDeg(best)}°</span></div>
+      <div class="bar"><span class="n">Rotated boxes</span><span class="p">${r.boxes.length}</span></div></div><div style="margin-top:12px"></div>` : "") +
+      bars(counts(r.boxes, names), (x) => color(x.cls)) +
+      `<p class="hint" style="margin:10px 0 0">Hold a phone, book or bottle at an angle – the box turns with it. 0° = upright.</p>`;
+  } else if (task === "detect" || task === "segment") {
     $("insTitle").textContent = "Objects in view"; $("insight").innerHTML = bars(counts(r.boxes, names), (x) => color(x.cls));
   } else if (task === "classify") {
     $("insTitle").textContent = "Top-5 classes"; $("insight").innerHTML = bars(r.top.map((t) => ({ n: t.name, v: t.p, txt: (t.p * 100).toFixed(1) + " %" })), (_, i) => (i ? "#7c9cff" : "#ffc35c"));
@@ -511,7 +527,12 @@ async function runOnce() {
   try { do { again = false; await infer(); } while (again && source && source.tagName === "IMG"); } catch (e) { console.error(e); }
   busy = false;
 }
+let confBeforeObb = null;
 function setTask(t) {
+  // OBB detects everyday objects with low scores (aerial model) -> use 20 % while OBB is active
+  if (t === "obb" && task !== "obb") { confBeforeObb = $("conf").value; $("conf").value = 20; }
+  else if (t !== "obb" && task === "obb" && confBeforeObb !== null) { $("conf").value = confBeforeObb; confBeforeObb = null; }
+  $("oConf").textContent = $("conf").value + " %";
   task = t; result = null;
   $("taskHint").textContent = TASKS[t].hint; $("about").innerHTML = `<p>${TASKS[t].about}</p>`;
   $("tTask").textContent = TASKS[t].label; setChip("chipTask", "Task", TASKS[t].model);
