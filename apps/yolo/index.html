@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YOLO26 Vision Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Unit 3.2 - YOLO26 browser detection console (Moritz Binder, M334422)
+   Layout: header bar / left source rail / central stage / right analytics column */
+:root{
+  --bg:#0a0d12; --panel:#11161e; --panel2:#151b25; --line:#222b38; --text:#e7ecf3; --muted:#8693a6;
+  --accent:#ffb547; --accent2:#3fd4c6; --live:#ff4d5e; --good:#4bd18b;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px}
+button,input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0f141c,#0a0d12)}
+.logo{width:34px;height:34px;border-radius:9px;background:conic-gradient(from 200deg,var(--accent),var(--accent2),var(--accent));display:grid;place-items:center}
+.logo i{width:14px;height:14px;border:2.5px solid #0a0d12;border-radius:3px;display:block}
+header h1{margin:0;font-family:var(--display);font-size:20px;letter-spacing:.01em}
+header h1 span{color:var(--muted);font-weight:500}
+.chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel)}
+.chip b{color:var(--text);font-weight:600}
+.chip.ok b{color:var(--good)}
+
+main{display:grid;grid-template-columns:260px minmax(0,1fr) 320px;gap:16px;padding:16px 22px 22px}
+@media (max-width:1200px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel h2{margin:0 0 12px;font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.stack{display:grid;gap:16px;align-content:start}
+
+/* sources */
+.src{display:grid;gap:8px}
+.src button.tab{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer}
+.src button.tab[aria-pressed="true"]{border-color:var(--accent);background:#1d1a12}
+.src button.tab svg{flex:none;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
+.src .sub{font-size:12px;color:var(--muted)}
+.field{display:grid;gap:6px;margin-top:4px}
+.field[hidden]{display:none}
+.field input[type=text]{background:#0b0f15;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:12px;min-width:0;width:100%}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1205}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12px;color:var(--muted);line-height:1.45}
+input[type=file]{display:none}
+
+/* settings */
+.slider{display:grid;gap:6px}
+.slider .row{justify-content:space-between}
+.slider output{font-family:var(--mono);color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent2);color:#04201d;font-weight:600}
+label.check{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+label.check input{accent-color:var(--accent)}
+
+/* stage */
+.stage-wrap{display:grid;gap:12px;align-content:start}
+.stage{position:relative;background:#05070a;border:1px solid var(--line);border-radius:14px;overflow:hidden;aspect-ratio:16/9;display:grid;place-items:center}
+.stage canvas{width:100%;height:100%;object-fit:contain;display:block}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,7,10,.82);text-align:center;padding:20px}
+.overlay[hidden]{display:none}
+.spinner{width:40px;height:40px;border-radius:50%;border:3px solid #2a3240;border-top-color:var(--accent);animation:spin .9s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay p{margin:4px 0;color:var(--muted)}
+.overlay p.main{color:var(--text);font-size:16px;font-weight:600}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar .title{font-family:var(--display);font-weight:600;font-size:15px}
+.toolbar .title small{color:var(--muted);font-weight:500;font-family:var(--body);margin-left:6px}
+.toolbar .spacer{flex:1}
+
+/* video player bar */
+.player{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.player[hidden]{display:none}
+.pbtn{flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;cursor:pointer}
+.pbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.pbtn svg .fill{fill:currentColor;stroke:none}
+.pbtn.play{width:40px;height:40px;background:var(--accent);border-color:var(--accent);color:#1a1205}
+.pbtn:hover{border-color:var(--accent)}
+.ptime{font-family:var(--mono);font-size:12px;color:var(--muted);min-width:42px;text-align:center;font-variant-numeric:tabular-nums}
+#pSeek{flex:1;min-width:80px;accent-color:var(--accent)}
+#pSpeed{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:12px}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:var(--display);font-size:26px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+
+/* analytics */
+.counts{display:grid;gap:9px}
+.cnt{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:center}
+.cnt .dot{width:10px;height:10px;border-radius:3px}
+.cnt .name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnt .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cnt .bar{grid-column:2/4;height:6px;border-radius:3px;background:#0b0f15;overflow:hidden}
+.cnt .bar i{display:block;height:100%;border-radius:3px}
+.empty{color:var(--muted);font-size:13px}
+#spark{width:100%;height:90px;display:block}
+.log{font-family:var(--mono);font-size:12px;color:var(--muted);display:grid;gap:4px;max-height:150px;overflow:auto}
+.log b{color:var(--text);font-weight:500}
+footer{padding:0 22px 18px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true"><i></i></div>
+  <h1>YOLO26 Vision Console <span>· Unit 3.2</span></h1>
+  <div class="chips">
+    <span class="chip">Model <b>yolo26n</b></span>
+    <span class="chip" id="chipBackend">Backend <b>–</b></span>
+    <span class="chip" id="chipStatus">Status <b>loading</b></span>
+    <a class="chip" href="traffic.html" style="text-decoration:none">Traffic analytics (3.6) →</a>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: sources + settings -->
+  <div class="stack">
+    <section class="panel">
+      <h2>Video source</h2>
+      <div class="src" role="group" aria-label="Video source">
+        <button class="tab" type="button" data-src="cctv" aria-pressed="true">
+          <svg viewBox="0 0 24 24"><path d="M3 7l12-3 2 6-12 3z"/><path d="M9 12l1 5h-4"/><path d="M17 8l4-1"/></svg>
+          <span>Live CCTV<div class="sub">Traffic camera stream</div></span></button>
+        <button class="tab" type="button" data-src="youtube" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M10 9.5l5 2.5-5 2.5z"/></svg>
+          <span>YouTube video<div class="sub">e.g. a sports clip</div></span></button>
+        <button class="tab" type="button" data-src="file" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>
+          <span>Video / image file<div class="sub">from your computer</div></span></button>
+        <button class="tab" type="button" data-src="webcam" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="11" r="6"/><circle cx="12" cy="11" r="2"/><path d="M8 21h8"/></svg>
+          <span>Webcam<div class="sub">live from this Mac</div></span></button>
+      </div>
+
+      <div class="field" id="fCctv">
+        <input type="text" id="cctvUrl" value="https://cctv.klcg.gov.tw/facd4662" aria-label="CCTV stream URL">
+        <div class="row"><button class="btn primary" type="button" id="cctvGo">Connect stream</button></div>
+      </div>
+      <div class="field" id="fYoutube" hidden>
+        <input type="text" id="ytUrl" placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube URL">
+        <div class="row"><button class="btn primary" type="button" id="ytGo">Load video</button></div>
+        <div class="hint">The local helper downloads the clip in 360–480p. This takes a few seconds.</div>
+      </div>
+      <div class="field" id="fFile" hidden>
+        <div class="row"><label class="btn primary" for="fileIn">Choose file</label></div>
+        <input type="file" id="fileIn" accept="video/*,image/*">
+      </div>
+      <div class="field" id="fWebcam" hidden>
+        <div class="row"><button class="btn primary" type="button" id="camGo">Start webcam</button></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Detection settings</h2>
+      <div class="stack" style="gap:14px">
+        <div class="slider">
+          <div class="row"><span>Confidence</span><output id="confOut">35 %</output></div>
+          <input type="range" id="conf" min="10" max="90" value="35" aria-label="Confidence threshold">
+        </div>
+        <div>
+          <div class="hint" style="margin-bottom:6px">Show classes</div>
+          <div class="filters" id="filters">
+            <button type="button" data-f="all" aria-pressed="true">All</button>
+            <button type="button" data-f="vehicles" aria-pressed="false">Vehicles</button>
+            <button type="button" data-f="people" aria-pressed="false">People</button>
+            <button type="button" data-f="sports" aria-pressed="false">Sports</button>
+            <button type="button" data-f="animals" aria-pressed="false">Animals</button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="showLabels" checked> Show labels &amp; scores</label>
+        <label class="check"><input type="checkbox" id="showTrails"> Motion trails</label>
+      </div>
+    </section>
+  </div>
+
+  <!-- CENTER: stage -->
+  <div class="stage-wrap">
+    <div class="toolbar">
+      <span class="title" id="srcTitle">Live CCTV <small id="srcSub">Keelung traffic camera</small></span>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="pauseBtn">Pause</button>
+      <button class="btn" type="button" id="snapBtn">Save snapshot</button>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="view" width="1280" height="720"></canvas>
+      <div class="overlay" id="overlay"><div><div class="spinner"></div><p class="main" id="ovMain">Loading YOLO26 model…</p><p id="ovSub">yolo26n.onnx · 9.5 MB</p></div></div>
+    </div>
+    <div class="player" id="player" hidden>
+      <button class="pbtn" type="button" id="pBack" title="Back 5 s (←)" aria-label="Back 5 seconds">
+        <svg viewBox="0 0 24 24"><path d="M11 7l-5 5 5 5"/><path d="M18 7l-5 5 5 5"/></svg></button>
+      <button class="pbtn" type="button" id="pFrameBack" title="Previous frame (,)" aria-label="Previous frame">
+        <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button class="pbtn play" type="button" id="pPlay" title="Play / pause (Space)" aria-label="Play or pause">
+        <svg viewBox="0 0 24 24" id="pPlayIcon"><path d="M8 5v14l11-7z" class="fill"/></svg></button>
+      <button class="pbtn" type="button" id="pFrameFwd" title="Next frame (.)" aria-label="Next frame">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="pbtn" type="button" id="pFwd" title="Forward 5 s (→)" aria-label="Forward 5 seconds">
+        <svg viewBox="0 0 24 24"><path d="M13 7l5 5-5 5"/><path d="M6 7l5 5-5 5"/></svg></button>
+      <span class="ptime" id="pCur">0:00</span>
+      <input type="range" id="pSeek" min="0" max="1000" value="0" step="1" aria-label="Video position">
+      <span class="ptime" id="pDur">0:00</span>
+      <select id="pSpeed" aria-label="Playback speed">
+        <option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+      </select>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">Objects</div><div class="v" id="tObj">0</div></div>
+      <div class="tile"><div class="k">Classes</div><div class="v" id="tCls">0</div></div>
+      <div class="tile"><div class="k">Inference</div><div class="v" id="tInf">–<small>ms</small></div></div>
+      <div class="tile"><div class="k">Detection rate</div><div class="v" id="tFps">–<small>fps</small></div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: analytics -->
+  <div class="stack">
+    <section class="panel">
+      <h2>Live counts</h2>
+      <div class="counts" id="counts"><div class="empty">No objects yet.</div></div>
+    </section>
+    <section class="panel">
+      <h2>Objects over time</h2>
+      <canvas id="spark" width="600" height="180" aria-label="Objects over time"></canvas>
+      <div class="row hint" style="justify-content:space-between;margin-top:6px"><span>last 60 s</span><span>peak <b id="peak">0</b></span></div>
+    </section>
+    <section class="panel">
+      <h2>Detection log</h2>
+      <div class="log" id="log"><span>Waiting for first detections…</span></div>
+    </section>
+  </div>
+</main>
+<footer>YOLO26n by Ultralytics, exported to ONNX and run in the browser with ONNX Runtime Web · 80 COCO classes · Moritz Binder, HS Pforzheim</footer>
+
+<video id="video" muted playsinline loop hidden></video>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const S = 640;                                  // model input size
+const GROUPS = {
+  vehicles: ["bicycle", "car", "motorcycle", "bus", "train", "truck", "boat", "airplane"],
+  people: ["person", "backpack", "handbag", "umbrella", "suitcase"],
+  sports: ["person", "sports ball", "tennis racket", "baseball bat", "baseball glove", "frisbee", "skateboard", "skis", "snowboard", "surfboard", "kite"],
+  animals: ["bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe"],
+};
+let labels = [], session = null, backend = "-";
+let source = null, srcKind = "cctv", paused = false, busy = false;
+let dets = [], lastInfer = 0, rate = 0, peak = 0;
+const series = [];                              // [time, count]
+const trails = new Map();
+let filter = "all";
+const view = $("view"), vctx = view.getContext("2d");
+const pre = document.createElement("canvas"); pre.width = pre.height = S;
+const pctx = pre.getContext("2d", { willReadFrequently: true });
+const video = $("video");
+
+function color(cls) { return `hsl(${(cls * 47) % 360} 85% 60%)`; }
+function setStatus(t, ok) { $("chipStatus").innerHTML = `Status <b>${t}</b>`; $("chipStatus").className = "chip" + (ok ? " ok" : ""); }
+function overlay(main, sub, spin = true) {
+  $("overlay").hidden = !main;
+  if (!main) return;
+  $("ovMain").textContent = main; $("ovSub").textContent = sub || "";
+  $("overlay").querySelector(".spinner").style.display = spin ? "" : "none";
+}
+
+// ---------------------------------------------------------------------------
+// Model
+// ---------------------------------------------------------------------------
+async function loadModel() {
+  labels = await (await fetch("model/labels.json")).json();
+  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
+  for (const ep of ["webgpu", "wasm"]) {
+    try {
+      if (ep === "webgpu" && !navigator.gpu) continue;
+      session = await ort.InferenceSession.create("model/yolo26n.onnx", { executionProviders: [ep], graphOptimizationLevel: "all" });
+      backend = ep === "webgpu" ? "WebGPU" : "WASM (CPU)";
+      break;
+    } catch (e) { console.warn(ep, e); }
+  }
+  if (!session) throw new Error("model");
+  $("chipBackend").innerHTML = `Backend <b>${backend}</b>`;
+}
+
+function iou(a, b) {
+  const x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+  const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  return inter / (a.w * a.h + b.w * b.h - inter + 1e-6);
+}
+
+async function detect(src, w, h) {
+  const scale = Math.min(S / w, S / h), nw = Math.round(w * scale), nh = Math.round(h * scale);
+  const px = (S - nw) / 2, py = (S - nh) / 2;
+  pctx.fillStyle = "rgb(114,114,114)"; pctx.fillRect(0, 0, S, S);
+  pctx.drawImage(src, 0, 0, w, h, px, py, nw, nh);
+  const rgba = pctx.getImageData(0, 0, S, S).data, n = S * S;
+  const input = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) {
+    input[i] = rgba[i * 4] / 255; input[n + i] = rgba[i * 4 + 1] / 255; input[2 * n + i] = rgba[i * 4 + 2] / 255;
+  }
+  const out = await session.run({ images: new ort.Tensor("float32", input, [1, 3, S, S]) });
+  const o = out[session.outputNames[0]].data, N = 8400, C = labels.length;
+  const conf = $("conf").value / 100, cand = [];
+  for (let j = 0; j < N; j++) {
+    let best = 0, cls = -1;
+    for (let c = 0; c < C; c++) { const v = o[(4 + c) * N + j]; if (v > best) { best = v; cls = c; } }
+    if (best < conf) continue;
+    const cx = o[j], cy = o[N + j], bw = o[2 * N + j], bh = o[3 * N + j];
+    cand.push({ cls, score: best, x: (cx - bw / 2 - px) / scale, y: (cy - bh / 2 - py) / scale, w: bw / scale, h: bh / scale });
+  }
+  cand.sort((a, b) => b.score - a.score);
+  const keep = [];
+  for (const d of cand) {
+    if (keep.length >= 150) break;
+    if (keep.every((k) => k.cls !== d.cls || iou(k, d) < 0.45)) keep.push(d);
+  }
+  return keep;
+}
+
+// ---------------------------------------------------------------------------
+// Sources
+// ---------------------------------------------------------------------------
+function stopSource() {
+  if (paused && frozenFrom) source = frozenFrom;
+  paused = false; frozenFrom = null; $("pauseBtn").textContent = "Pause";
+  $("player").hidden = true;
+  if (video.srcObject) { video.srcObject.getTracks().forEach((t) => t.stop()); video.srcObject = null; }
+  video.pause(); video.removeAttribute("src");
+  if (source && source.tagName === "IMG") source.src = "";
+  if (cctv) { cctv.stop(); cctv = null; }
+  source = null; dets = []; trails.clear(); series.length = 0; peak = 0;
+}
+
+// The CCTV camera sends an MJPEG stream (an endless series of JPEG images).
+// Firefox only hands the FIRST frame of such a stream to a canvas, so the stream
+// is read with fetch(), every JPEG is decoded and drawn onto a canvas that serves as source.
+let cctv = null;
+class MjpegStream {
+  constructor(url, canvas) { this.url = url; this.canvas = canvas; this.frames = 0; this.ctrl = new AbortController(); this.busy = false; }
+  async start() {
+    const res = await fetch(this.url, { signal: this.ctrl.signal, cache: "no-store" });
+    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+    const reader = res.body.getReader();
+    let buf = new Uint8Array(0);
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const nb = new Uint8Array(buf.length + value.length); nb.set(buf); nb.set(value, buf.length); buf = nb;
+      for (;;) {
+        const s = findMarker(buf, 0xd8, 0); if (s < 0) { buf = new Uint8Array(0); break; }
+        const e = findMarker(buf, 0xd9, s + 2); if (e < 0) { if (s > 0) buf = buf.slice(s); break; }
+        this.decode(buf.slice(s, e + 2)); buf = buf.slice(e + 2);
+      }
+      if (buf.length > 8e6) buf = new Uint8Array(0);
+    }
+  }
+  async decode(jpg) {
+    if (this.busy) return;                         // drop a frame rather than fall behind
+    this.busy = true;
+    try {
+      const bmp = await createImageBitmap(new Blob([jpg], { type: "image/jpeg" }));
+      if (this.canvas.width !== bmp.width || this.canvas.height !== bmp.height) { this.canvas.width = bmp.width; this.canvas.height = bmp.height; }
+      this.canvas.getContext("2d").drawImage(bmp, 0, 0); bmp.close && bmp.close();
+      this.frames++;
+    } catch (e) { /* incomplete frame */ }
+    this.busy = false;
+  }
+  stop() { this.ctrl.abort(); }
+}
+function findMarker(b, marker, from) { for (let i = from; i < b.length - 1; i++) if (b[i] === 0xff && b[i + 1] === marker) return i; return -1; }
+function sourceSize() {
+  if (!source) return null;
+  if (source.tagName === "VIDEO") return source.videoWidth ? [source.videoWidth, source.videoHeight] : null;
+  if (source.tagName === "CANVAS") return source.width > 1 ? [source.width, source.height] : null;
+  return source.naturalWidth ? [source.naturalWidth, source.naturalHeight] : null;
+}
+function setTitle(t, sub) { $("srcTitle").innerHTML = `${t} <small>${sub || ""}</small>`; }
+
+function startCctv() {
+  stopSource();
+  const url = $("cctvUrl").value.trim();
+  overlay("Connecting to live stream…", url);
+  const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
+  const s = cctv = new MjpegStream(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now(), canvas);
+  s.start().catch((e) => {
+    if (s !== cctv || e.name === "AbortError") return;
+    overlay("Stream not reachable", "Check the URL or your internet connection. (" + e.message + ")", false); setStatus("no stream");
+  });
+  source = canvas;
+  setTitle("Live CCTV", "Keelung traffic camera · MJPEG");
+  const wait = setInterval(() => { if (s !== cctv) return clearInterval(wait); if (s.frames) { clearInterval(wait); overlay(null); setStatus("live", true); } }, 200);
+}
+
+async function startYoutube() {
+  const url = $("ytUrl").value.trim();
+  if (!url) return;
+  stopSource();
+  overlay("Downloading YouTube clip…", "the local helper fetches a 360–480p version");
+  setStatus("downloading");
+  try {
+    const r = await fetch("/api/youtube", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "failed");
+    await playVideo(j.src);
+    setTitle("YouTube", j.title);
+  } catch (e) {
+    overlay("Could not load the video", String(e.message || e) + " · YouTube needs the local helper (run_yolo.command) – on GitHub Pages use CCTV, file or webcam.", false);
+    setStatus("error");
+  }
+}
+
+async function playVideo(src) {
+  video.src = src;
+  video.playbackRate = Number($("pSpeed").value);
+  await video.play();
+  source = video; overlay(null); setStatus("running", true);
+  $("player").hidden = false;
+}
+
+async function startFile(file) {
+  if (!file) return;
+  stopSource();
+  if (file.type.startsWith("image/")) {
+    const img = new Image(); img.src = URL.createObjectURL(file); await img.decode();
+    source = img; overlay(null); setStatus("image", true);
+  } else {
+    await playVideo(URL.createObjectURL(file));
+  }
+  setTitle("File", file.name);
+}
+
+async function startWebcam() {
+  stopSource();
+  overlay("Starting webcam…", "allow camera access in the browser");
+  try {
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } } });
+    await video.play();
+    source = video; overlay(null); setStatus("live", true);
+    setTitle("Webcam", "this Mac");
+  } catch (e) { overlay("No webcam access", "Allow the camera via the icon in the address bar.", false); setStatus("no camera"); }
+}
+
+document.querySelectorAll(".src button.tab").forEach((b) => b.addEventListener("click", () => {
+  srcKind = b.dataset.src;
+  document.querySelectorAll(".src button.tab").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  $("fCctv").hidden = srcKind !== "cctv"; $("fYoutube").hidden = srcKind !== "youtube";
+  $("fFile").hidden = srcKind !== "file"; $("fWebcam").hidden = srcKind !== "webcam";
+}));
+$("cctvGo").onclick = startCctv;
+$("ytGo").onclick = startYoutube;
+$("ytUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") startYoutube(); });
+$("fileIn").onchange = (e) => startFile(e.target.files[0]);
+$("camGo").onclick = startWebcam;
+$("conf").oninput = () => { $("confOut").textContent = $("conf").value + " %"; };
+document.querySelectorAll("#filters button").forEach((b) => b.addEventListener("click", () => {
+  filter = b.dataset.f;
+  document.querySelectorAll("#filters button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+}));
+// Pause: videos are paused (detection keeps running on the still frame),
+// live streams are frozen by copying the current frame.
+let frozenFrom = null;
+function togglePause() {
+  if (source === video && !video.srcObject) { video.paused ? video.play() : video.pause(); return; }
+  if (!paused && source) {
+    const [w, h] = sourceSize() || [0, 0];
+    if (!w) return;
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d").drawImage(source, 0, 0, w, h);
+    frozenFrom = source; source = c; paused = true;
+  } else if (paused) {
+    source = frozenFrom; frozenFrom = null; paused = false;
+  }
+  $("pauseBtn").textContent = paused ? "Resume" : "Pause";
+}
+$("pauseBtn").onclick = togglePause;
+
+// --- player bar (YouTube and video files) ---
+const fmt = (t) => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`; };
+const FRAME = 1 / 25;
+let seeking = false;
+function seekTo(t) { if (video.duration) video.currentTime = Math.min(Math.max(0, t), video.duration - 0.05); }
+function updatePlayer() {
+  if ($("player").hidden) return;
+  $("pCur").textContent = fmt(video.currentTime);
+  $("pDur").textContent = fmt(video.duration);
+  if (!seeking && video.duration) $("pSeek").value = Math.round((video.currentTime / video.duration) * 1000);
+}
+function setPlayIcon() {
+  $("pPlayIcon").innerHTML = video.paused
+    ? '<path d="M8 5v14l11-7z" class="fill"/>'
+    : '<rect x="7" y="5" width="3.5" height="14" rx="1" class="fill"/><rect x="13.5" y="5" width="3.5" height="14" rx="1" class="fill"/>';
+  if (source === video && !video.srcObject) $("pauseBtn").textContent = video.paused ? "Resume" : "Pause";
+}
+video.addEventListener("play", setPlayIcon);
+video.addEventListener("pause", setPlayIcon);
+video.addEventListener("timeupdate", updatePlayer);
+video.addEventListener("loadedmetadata", updatePlayer);
+video.addEventListener("seeked", () => { updatePlayer(); runDetection(); });
+$("pPlay").onclick = () => (video.paused ? video.play() : video.pause());
+$("pBack").onclick = () => seekTo(video.currentTime - 5);
+$("pFwd").onclick = () => seekTo(video.currentTime + 5);
+$("pFrameBack").onclick = () => { video.pause(); seekTo(video.currentTime - FRAME); };
+$("pFrameFwd").onclick = () => { video.pause(); seekTo(video.currentTime + FRAME); };
+$("pSeek").addEventListener("input", () => { seeking = true; seekTo(($("pSeek").value / 1000) * video.duration); $("pCur").textContent = fmt(video.currentTime); });
+$("pSeek").addEventListener("change", () => { seeking = false; });
+$("pSpeed").onchange = () => { video.playbackRate = Number($("pSpeed").value); };
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" && e.target.type === "text") return;
+  if ($("player").hidden) { if (e.code === "Space") { e.preventDefault(); togglePause(); } return; }
+  if (e.code === "Space") { e.preventDefault(); video.paused ? video.play() : video.pause(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); seekTo(video.currentTime - 5); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); seekTo(video.currentTime + 5); }
+  else if (e.key === ",") { video.pause(); seekTo(video.currentTime - FRAME); }
+  else if (e.key === ".") { video.pause(); seekTo(video.currentTime + FRAME); }
+});
+$("snapBtn").onclick = () => view.toBlob((b) => {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(b);
+  a.download = `yolo26_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`; a.click();
+});
+
+// ---------------------------------------------------------------------------
+// Drawing
+// ---------------------------------------------------------------------------
+function visible(d) { return filter === "all" || GROUPS[filter].includes(labels[d.cls]); }
+
+function draw() {
+  const size = sourceSize();
+  if (!size) return;
+  const [w, h] = size;
+  // draw at least 1280 px wide so labels and the HUD look the same on small videos
+  const k = Math.max(1, 1280 / w), cw = Math.round(w * k), ch = Math.round(h * k);
+  if (view.width !== cw || view.height !== ch) { view.width = cw; view.height = ch; }
+  vctx.setTransform(k, 0, 0, k, 0, 0);
+  vctx.drawImage(source, 0, 0, w, h);
+  const lw = Math.max(2, cw / 500) / k, fs = Math.max(12, Math.round(cw / 70)) / k;
+  const shown = dets.filter(visible);
+
+  if ($("showTrails").checked) {
+    for (const [, pts] of trails) {
+      if (pts.length < 2) continue;
+      vctx.strokeStyle = pts.color; vctx.lineWidth = lw; vctx.globalAlpha = 0.6;
+      vctx.beginPath(); pts.forEach((p, i) => (i ? vctx.lineTo(p[0], p[1]) : vctx.moveTo(p[0], p[1]))); vctx.stroke();
+      vctx.globalAlpha = 1;
+    }
+  }
+  vctx.font = `600 ${fs}px "IBM Plex Sans", sans-serif`;
+  for (const d of shown) {
+    const c = color(d.cls);
+    vctx.strokeStyle = c; vctx.lineWidth = lw;
+    vctx.strokeRect(d.x, d.y, d.w, d.h);
+    // corner accents
+    const k = Math.min(d.w, d.h) * 0.22;
+    vctx.lineWidth = lw * 2;
+    [[d.x, d.y, 1, 1], [d.x + d.w, d.y, -1, 1], [d.x, d.y + d.h, 1, -1], [d.x + d.w, d.y + d.h, -1, -1]].forEach(([x, y, sx, sy]) => {
+      vctx.beginPath(); vctx.moveTo(x + sx * k, y); vctx.lineTo(x, y); vctx.lineTo(x, y + sy * k); vctx.stroke();
+    });
+    if ($("showLabels").checked) {
+      const t = `${labels[d.cls]} ${Math.round(d.score * 100)}%`;
+      const tw = vctx.measureText(t).width + fs * 0.8, th = fs * 1.5;
+      const ty = d.y - th < 0 ? d.y : d.y - th;
+      vctx.fillStyle = c; vctx.fillRect(d.x - lw / 2, ty, tw, th);
+      vctx.fillStyle = "#0a0d12"; vctx.fillText(t, d.x + fs * 0.4, ty + fs * 1.08);
+    }
+  }
+  // on-image HUD, top-left
+  const live = (srcKind === "cctv" || srcKind === "webcam") && !paused;
+  const still = paused || (source === video && video.paused && !video.srcObject);
+  const stamp = new Date().toLocaleString("en-GB");
+  const mode = still ? "■ PAUSED" : live ? "● LIVE" : "▶ PLAYBACK";
+  const pad = fs * 0.7, hud = `${mode}   ${stamp}   ${shown.length} objects`;
+  vctx.font = `600 ${fs}px "IBM Plex Mono", monospace`;
+  const hw = vctx.measureText(hud).width + pad * 2;
+  vctx.fillStyle = "rgba(10,13,18,0.72)"; vctx.fillRect(pad, pad, hw, fs * 1.9);
+  vctx.fillStyle = still ? "#3fd4c6" : live ? "#ff4d5e" : "#ffb547"; vctx.fillText(mode[0], pad * 2, pad + fs * 1.3);
+  vctx.fillStyle = "#e7ecf3"; vctx.fillText(hud.slice(1), pad * 2, pad + fs * 1.3);
+  vctx.font = `600 ${Math.round(fs * 0.85)}px "IBM Plex Mono", monospace`;
+  vctx.fillStyle = "rgba(231,236,243,0.75)";
+  vctx.fillText("YOLO26n · Moritz Binder", pad, h - pad);
+}
+
+function updatePanels() {
+  const shown = dets.filter(visible);
+  const counts = {};
+  shown.forEach((d) => { counts[d.cls] = (counts[d.cls] || 0) + 1; });
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = rows.length ? rows[0][1] : 1;
+  $("counts").innerHTML = rows.length ? rows.slice(0, 8).map(([c, n]) =>
+    `<div class="cnt"><span class="dot" style="background:${color(+c)}"></span><span class="name">${labels[c]}</span><span class="num">${n}</span><span class="bar"><i style="width:${(n / max) * 100}%;background:${color(+c)}"></i></span></div>`
+  ).join("") : `<div class="empty">No objects in view.</div>`;
+  $("tObj").textContent = shown.length;
+  $("tCls").textContent = rows.length;
+  peak = Math.max(peak, shown.length); $("peak").textContent = peak;
+}
+
+function drawSpark() {
+  const c = $("spark"), g = c.getContext("2d"), W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  const now = performance.now();
+  while (series.length && now - series[0][0] > 60000) series.shift();
+  const max = Math.max(5, ...series.map((p) => p[1]));
+  g.strokeStyle = "#222b38"; g.lineWidth = 1;
+  for (let i = 1; i < 4; i++) { const y = (H * i) / 4; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  if (series.length < 2) return;
+  const X = (t) => W - ((now - t) / 60000) * W, Y = (v) => H - 8 - (v / max) * (H - 16);
+  const grad = g.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, "rgba(255,181,71,0.35)"); grad.addColorStop(1, "rgba(255,181,71,0)");
+  g.beginPath(); series.forEach((p, i) => (i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))));
+  g.lineTo(X(series[series.length - 1][0]), H); g.lineTo(X(series[0][0]), H); g.closePath(); g.fillStyle = grad; g.fill();
+  g.beginPath(); series.forEach((p, i) => (i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))));
+  g.strokeStyle = "#ffb547"; g.lineWidth = 2.5; g.stroke();
+  const last = series[series.length - 1];
+  g.fillStyle = "#ffb547"; g.beginPath(); g.arc(X(last[0]), Y(last[1]), 4, 0, 7); g.fill();
+}
+
+let lastLog = 0;
+function updateLog() {
+  const now = performance.now();
+  if (now - lastLog < 2000 || !dets.length) return;
+  lastLog = now;
+  const counts = {};
+  dets.filter(visible).forEach((d) => { counts[labels[d.cls]] = (counts[labels[d.cls]] || 0) + 1; });
+  const txt = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${v} ${k}`).join(", ");
+  if (!txt) return;
+  const el = document.createElement("span");
+  el.innerHTML = `${new Date().toLocaleTimeString("en-GB")}  <b>${txt}</b>`;
+  const log = $("log"); if (log.firstChild && log.firstChild.tagName === "SPAN" && !log.firstChild.querySelector("b")) log.innerHTML = "";
+  log.prepend(el); while (log.children.length > 12) log.lastChild.remove();
+}
+
+function updateTrails() {
+  // simple nearest-centre matching, only for the visual trails
+  const next = new Map(); let id = 0;
+  for (const d of dets.filter(visible)) {
+    const c = [d.x + d.w / 2, d.y + d.h / 2]; let bestKey = null, bestDist = Math.max(d.w, d.h);
+    for (const [key, pts] of trails) {
+      if (pts.cls !== d.cls || next.has(key)) continue;
+      const p = pts[pts.length - 1], dist = Math.hypot(p[0] - c[0], p[1] - c[1]);
+      if (dist < bestDist) { bestDist = dist; bestKey = key; }
+    }
+    const pts = bestKey !== null ? trails.get(bestKey) : Object.assign([], { cls: d.cls, color: color(d.cls) });
+    pts.push(c); if (pts.length > 30) pts.shift();
+    next.set(bestKey !== null ? bestKey : `n${Date.now()}_${id++}`, pts);
+  }
+  trails.clear(); next.forEach((v, k) => trails.set(k, v));
+}
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+async function runDetection() {
+  const size = sourceSize();
+  if (!session || !size || busy) return;
+  busy = true;
+  const t0 = performance.now();
+  try {
+    dets = await detect(source, size[0], size[1]);
+    const ms = performance.now() - t0;
+    $("tInf").innerHTML = `${ms.toFixed(0)}<small>ms</small>`;
+    const now = performance.now();
+    if (lastInfer) rate = rate * 0.85 + (1000 / (now - lastInfer)) * 0.15;
+    lastInfer = now;
+    $("tFps").innerHTML = `${rate.toFixed(1)}<small>fps</small>`;
+    series.push([now, dets.filter(visible).length]);
+    updateTrails(); updatePanels(); updateLog();
+  } catch (e) { console.error(e); }
+  busy = false;
+}
+
+function loop() {
+  try { draw(); } catch (e) { /* frame not ready */ }
+  drawSpark();
+  runDetection();
+  requestAnimationFrame(loop);
+}
+
+(async () => {
+  try {
+    await loadModel();
+    setStatus("ready", true);
+    startCctv();
+  } catch (e) {
+    console.error(e);
+    overlay("Could not load the model", "Start the app with run_yolo.command and check your internet connection.", false);
+    setStatus("error");
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

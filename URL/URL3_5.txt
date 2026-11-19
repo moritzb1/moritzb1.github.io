@@ -1,2 +1,2 @@
 Pforzheim AI Course Islands
-https://drluarn.github.io/course_islands.html
+https://moritzb1.github.io/apps/course_island.html

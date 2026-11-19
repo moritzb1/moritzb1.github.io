@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neural Style Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Unit 3.3 - Neural Style Transfer studio (Moritz Binder, M334422)
+   Gallery look: dark wall, artworks as framed cards. Layout: header / settings rail + main canvas + gallery */
+:root{
+  --bg:#0d0c0f; --panel:#16141a; --panel2:#1c1a21; --line:#2b2832; --text:#efeae2; --muted:#9a93a3;
+  --accent:#e8b464; --accent2:#c06a8a;
+  --display:"Fraunces",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px}
+button,input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header .mark{width:34px;height:34px;border-radius:50%;background:conic-gradient(#e8b464,#c06a8a,#5e7bd6,#4fb39a,#e8b464)}
+header h1{margin:0;font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-.01em}
+header h1 span{font-family:var(--body);font-weight:500;font-size:15px;color:var(--muted);margin-left:6px}
+.chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel)}
+.chip b{color:var(--text);font-weight:500}
+main{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;padding:18px 24px 24px}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel h2{margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stack{display:grid;gap:16px;align-content:start}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#24180a}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.wide{width:100%}
+input[type=file]{display:none}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px;cursor:pointer;font-weight:500}
+.seg button[aria-pressed="true"]{background:#2a2316;border-color:var(--accent);color:var(--accent)}
+.slider{display:grid;gap:6px}
+.slider .row{display:flex;justify-content:space-between}
+.slider output{font-family:var(--mono);color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.5}
+.theory p{margin:0 0 8px;font-size:13px;line-height:1.55;color:#cfc8d6}
+.theory b{color:var(--text)}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:800px){.hero{grid-template-columns:1fr}}
+.frame{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative;aspect-ratio:3/2;display:grid;place-items:center}
+.frame canvas,.frame img{width:100%;height:100%;object-fit:contain;display:block}
+.frame .tag{position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:12px;background:rgba(13,12,15,.75);padding:4px 9px;border-radius:6px}
+.frame .empty{color:var(--muted);text-align:center;padding:20px;line-height:1.5}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .title{font-family:var(--display);font-size:20px;font-weight:600}
+.toolbar .spacer{flex:1}
+
+.gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (max-width:1100px){.gallery{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:640px){.gallery{grid-template-columns:repeat(2,1fr)}}
+.art{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;text-align:left;padding:0}
+.art[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.art .pic{aspect-ratio:3/2;background:#000 center/cover no-repeat;display:grid;place-items:center;color:var(--muted);font-size:12px}
+.art .cap{padding:9px 11px}
+.art .cap b{display:block;font-family:var(--display);font-size:15px;font-weight:600}
+.art .cap span{font-size:12px;color:var(--muted)}
+.art .cap i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--accent);float:right}
+.spinner{width:22px;height:22px;border-radius:50%;border:2px solid #3a3542;border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{padding:0 24px 18px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark" aria-hidden="true"></div>
+  <h1>Neural Style Studio <span>· Unit 3.3</span></h1>
+  <div class="chips">
+    <span class="chip">Models <b>5 styles · fast NST</b></span>
+    <span class="chip" id="chipBackend">Backend <b>–</b></span>
+    <span class="chip" id="chipStatus">Status <b>loading</b></span>
+  </div>
+</header>
+
+<main>
+  <div class="stack">
+    <section class="panel">
+      <h2>Input</h2>
+      <div class="seg" role="group" aria-label="Input mode">
+        <button type="button" id="modePhoto" aria-pressed="true">Photo</button>
+        <button type="button" id="modeCam" aria-pressed="false">Live webcam</button>
+      </div>
+      <div class="stack" style="gap:10px;margin-top:12px" id="photoCtl">
+        <label class="btn primary wide" for="file">Upload a photo</label>
+        <input type="file" id="file" accept="image/*">
+        <button class="btn wide" type="button" id="sample">Use sample photo</button>
+      </div>
+      <div class="stack" style="gap:10px;margin-top:12px" id="camCtl" hidden>
+        <button class="btn primary wide" type="button" id="camBtn">Start webcam</button>
+        <p class="hint">The live view applies the selected style to every webcam frame.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Settings</h2>
+      <div class="stack" style="gap:14px">
+        <div class="slider"><div class="row"><span>Style strength</span><output id="oStr">100 %</output></div>
+          <input type="range" id="strength" min="0" max="100" value="100" aria-label="Style strength"></div>
+        <div>
+          <div class="hint" style="margin-bottom:6px">Output resolution (long side)</div>
+          <select id="res" aria-label="Output resolution">
+            <option value="512">512 px · fast</option>
+            <option value="768" selected>768 px · balanced</option>
+            <option value="1024">1024 px · detailed</option>
+          </select>
+        </div>
+        <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="keepColor" style="accent-color:var(--accent)"> Keep original colours</label>
+        <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="useGpu" style="accent-color:var(--accent)"> Use GPU (WebGPU) – falls back to WASM</label>
+        <button class="btn wide" type="button" id="dl" disabled>Download selected image</button>
+      </div>
+    </section>
+
+    <section class="panel theory">
+      <h2>How it works</h2>
+      <p><b>Neural Style Transfer</b> fuses the <b>content</b> of a photo with the <b>style</b> of an artwork (Gatys et al., CVPR 2015).</p>
+      <p>The original method optimises every image for minutes. Here each style is a small <b>feed-forward CNN</b> trained once with <b>perceptual losses</b> (Johnson et al., ECCV 2016), so one image takes a fraction of a second.</p>
+      <p class="hint" style="margin:0 0 8px">Browser-only: no Python backend. The models run with ONNX Runtime Web (WASM, multi-threaded) inside a Web Worker, so the page never freezes.</p>
+      <p class="hint" style="margin:0 0 8px">Models: ONNX Model Zoo fast neural style “-9” versions (candy, mosaic, rain princess, udnie, pointilism). <b>Free for personal or research use.</b></p>
+      <p class="hint" style="margin:0">Optional extra styles (starry night, la muse, the scream …) exist only as Torch7 <code>.t7</code> files; they could not be converted reliably to ONNX, so they were skipped.</p>
+    </section>
+  </div>
+
+  <div>
+    <section class="panel">
+      <div class="toolbar">
+        <span class="title" id="selTitle">Pick a photo to begin</span>
+        <span class="spacer"></span>
+        <span class="chip" id="timing">–</span>
+      </div>
+      <div class="hero">
+        <div class="frame"><span class="tag">Original</span><canvas id="orig"></canvas><div class="empty" id="origEmpty">Upload a photo or use the sample.</div></div>
+        <div class="frame"><span class="tag" id="outTag">Stylised</span><canvas id="out"></canvas><div class="empty" id="outEmpty">The stylised version appears here.</div></div>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </section>
+  </div>
+</main>
+<footer>Fast neural style models (Johnson et al. 2016) from the ONNX Model Zoo · ONNX Runtime Web · Moritz Binder, HS Pforzheim</footer>
+<video id="video" playsinline muted hidden></video>
+
+<script>
+const STYLES = [
+  { id: "candy", name: "Candy", desc: "bright pop-art colour patches" },
+  { id: "mosaic", name: "Mosaic", desc: "stained-glass tiles" },
+  { id: "rain-princess", name: "Rain Princess", desc: "after Leonid Afremov" },
+  { id: "udnie", name: "Udnie", desc: "after Francis Picabia, 1913" },
+  { id: "pointilism", name: "Pointillism", desc: "dots in the manner of Seurat" },
+];
+const $ = (id) => document.getElementById(id);
+const results = {};                       // style id -> ImageData (stylised, full strength)
+let srcImg = null, selected = "candy", mode = "photo", camRunning = false, ready = false;
+
+function status(t) { $("chipStatus").innerHTML = `Status <b>${t}</b>`; }
+
+// ---------- Web Worker running ONNX Runtime Web ----------
+const worker = new Worker("worker.js");
+let msgId = 0; const pending = new Map();
+worker.onmessage = (e) => { const p = pending.get(e.data.id); if (p) { pending.delete(e.data.id); e.data.ok ? p.res(e.data) : p.rej(new Error(e.data.error)); } };
+function call(msg, transfer = []) { return new Promise((res, rej) => { const id = ++msgId; pending.set(id, { res, rej }); worker.postMessage({ ...msg, id }, transfer); }); }
+
+async function loadModels() {
+  ready = false; status("loading models");
+  const r = await call({ type: "init", useGpu: $("useGpu").checked });
+  const name = r.backend === "webgpu" ? "WebGPU" : r.backend.startsWith("wasm (") ? "WASM · no GPU" : `WASM · ${r.threads} threads`;
+  $("chipBackend").innerHTML = `Backend <b>${name}</b>`;
+  if (!r.isolated) console.warn("Page is not cross-origin isolated – start it with serve.py for multi-threading.");
+  ready = true; status("ready");
+}
+
+function buildGallery() {
+  $("gallery").innerHTML = STYLES.map((s) => `
+    <button type="button" class="art" data-id="${s.id}" aria-pressed="${s.id === selected}">
+      <div class="pic" id="pic-${s.id}">${srcImg ? '<div class="spinner"></div>' : "–"}</div>
+      <div class="cap"><i id="t-${s.id}"></i><b>${s.name}</b><span>${s.desc}</span></div>
+    </button>`).join("");
+  document.querySelectorAll(".art").forEach((b) => b.addEventListener("click", () => select(b.dataset.id)));
+}
+
+// ---------- core: run one style on a canvas-sized image ----------
+function toTensor(ctx, w, h) {             // float32 RGB 0-255, NCHW, no mean subtraction
+  const d = ctx.getImageData(0, 0, w, h).data, n = w * h, x = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) { x[i] = d[i * 4]; x[n + i] = d[i * 4 + 1]; x[2 * n + i] = d[i * 4 + 2]; }
+  return x;
+}
+async function stylise(styleId, ctx, w, h) {
+  const x = toTensor(ctx, w, h);
+  const r = await call({ type: "run", style: styleId, w, h, data: x }, [x.buffer]);
+  const y = r.data, n = w * h, im = new ImageData(w, h);
+  for (let i = 0; i < n; i++) {
+    im.data[i * 4] = Math.max(0, Math.min(255, y[i]));
+    im.data[i * 4 + 1] = Math.max(0, Math.min(255, y[n + i]));
+    im.data[i * 4 + 2] = Math.max(0, Math.min(255, y[2 * n + i]));
+    im.data[i * 4 + 3] = 255;
+  }
+  return im;
+}
+// blend stylised with original (strength) and optionally keep original colours (luminance transfer)
+function finish(styled, orig) {
+  const a = $("strength").value / 100, keep = $("keepColor").checked, o = new ImageData(styled.width, styled.height);
+  for (let i = 0; i < styled.data.length; i += 4) {
+    let r = styled.data[i], g = styled.data[i + 1], b = styled.data[i + 2];
+    const R = orig.data[i], G = orig.data[i + 1], B = orig.data[i + 2];
+    if (keep) {          // take brightness from the style, colour from the photo
+      const ys = 0.299 * r + 0.587 * g + 0.114 * b, yo = 0.299 * R + 0.587 * G + 0.114 * B, k = ys / Math.max(yo, 1);
+      r = R * k; g = G * k; b = B * k;
+    }
+    o.data[i] = R + (r - R) * a; o.data[i + 1] = G + (g - G) * a; o.data[i + 2] = B + (b - B) * a; o.data[i + 3] = 255;
+  }
+  return o;
+}
+
+// ---------- photo mode ----------
+const work = document.createElement("canvas"), wctx = work.getContext("2d", { willReadFrequently: true });
+let origData = null;
+async function processPhoto() {
+  if (!srcImg || !ready) return;
+  const long = Number($("res").value), sc = Math.min(1, long / Math.max(srcImg.width, srcImg.height));
+  const w = Math.round((srcImg.width * sc) / 4) * 4, h = Math.round((srcImg.height * sc) / 4) * 4;
+  work.width = w; work.height = h; wctx.drawImage(srcImg, 0, 0, w, h);
+  origData = wctx.getImageData(0, 0, w, h);
+  const oc = $("orig"); oc.width = w; oc.height = h; oc.getContext("2d").putImageData(origData, 0, 0);
+  $("origEmpty").hidden = true;
+  buildGallery(); status("styling");
+  const t0 = performance.now();
+  for (const s of STYLES) {
+    const t = performance.now();
+    results[s.id] = await stylise(s.id, wctx, w, h);
+    $(`t-${s.id}`).textContent = `${Math.round(performance.now() - t)} ms`;
+    const thumb = document.createElement("canvas"); thumb.width = w; thumb.height = h;
+    thumb.getContext("2d").putImageData(finish(results[s.id], origData), 0, 0);
+    $(`pic-${s.id}`).innerHTML = ""; $(`pic-${s.id}`).style.backgroundImage = `url(${thumb.toDataURL("image/jpeg", 0.8)})`;
+    if (s.id === selected) showSelected();
+  }
+  $("timing").textContent = `5 styles · ${w}×${h} px · ${((performance.now() - t0) / 1000).toFixed(1)} s total`;
+  status("done"); $("dl").disabled = false;
+}
+function showSelected() {
+  const s = STYLES.find((x) => x.id === selected);
+  $("selTitle").textContent = `${s.name} — ${s.desc}`;
+  $("outTag").textContent = `Stylised · ${s.name}`;
+  if (mode !== "photo" || !results[selected]) return;
+  const c = $("out"); c.width = origData.width; c.height = origData.height;
+  c.getContext("2d").putImageData(finish(results[selected], origData), 0, 0);
+  $("outEmpty").hidden = true;
+}
+function select(id) {
+  selected = id;
+  document.querySelectorAll(".art").forEach((b) => b.setAttribute("aria-pressed", b.dataset.id === id));
+  showSelected();
+}
+function refreshThumbs() {
+  if (!origData) return;
+  for (const s of STYLES) if (results[s.id]) {
+    const thumb = document.createElement("canvas"); thumb.width = origData.width; thumb.height = origData.height;
+    thumb.getContext("2d").putImageData(finish(results[s.id], origData), 0, 0);
+    $(`pic-${s.id}`).style.backgroundImage = `url(${thumb.toDataURL("image/jpeg", 0.8)})`;
+  }
+  showSelected();
+}
+async function loadImage(src) {
+  const im = new Image(); im.src = src; await im.decode(); srcImg = im; await processPhoto();
+}
+
+// ---------- webcam mode ----------
+const video = $("video");
+async function startCam() {
+  if (camRunning) { stopCam(); return; }
+  try {
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 960 }, height: { ideal: 540 } } });
+    await video.play();
+  } catch (e) { status("no camera"); $("outEmpty").textContent = "No webcam access. Allow the camera in the browser."; return; }
+  camRunning = true; $("camBtn").textContent = "Stop webcam"; status("live");
+  $("origEmpty").hidden = true; $("outEmpty").hidden = true;
+  camLoop();
+}
+function stopCam() {
+  camRunning = false; $("camBtn").textContent = "Start webcam";
+  if (video.srcObject) video.srcObject.getTracks().forEach((t) => t.stop());
+  status("ready");
+}
+async function camLoop() {
+  if (!camRunning) return;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (vw) {
+    const sc = 512 / Math.max(vw, vh), w = Math.round((vw * sc) / 4) * 4, h = Math.round((vh * sc) / 4) * 4;
+    work.width = w; work.height = h;
+    wctx.save(); wctx.translate(w, 0); wctx.scale(-1, 1); wctx.drawImage(video, 0, 0, w, h); wctx.restore();
+    const o = wctx.getImageData(0, 0, w, h);
+    const oc = $("orig"); oc.width = w; oc.height = h; oc.getContext("2d").putImageData(o, 0, 0);
+    const t = performance.now();
+    const styled = await stylise(selected, wctx, w, h);
+    const c = $("out"); c.width = w; c.height = h; c.getContext("2d").putImageData(finish(styled, o), 0, 0);
+    $("timing").textContent = `live · ${w}×${h} px · ${(1000 / (performance.now() - t)).toFixed(1)} fps`;
+  }
+  requestAnimationFrame(camLoop);
+}
+
+// ---------- controls ----------
+function setMode(m) {
+  mode = m; $("modePhoto").setAttribute("aria-pressed", m === "photo"); $("modeCam").setAttribute("aria-pressed", m === "cam");
+  $("photoCtl").hidden = m !== "photo"; $("camCtl").hidden = m !== "cam";
+  if (m === "photo") { stopCam(); if (origData) { const oc = $("orig"); oc.width = origData.width; oc.height = origData.height; oc.getContext("2d").putImageData(origData, 0, 0); showSelected(); } }
+}
+$("modePhoto").onclick = () => setMode("photo");
+$("modeCam").onclick = () => setMode("cam");
+$("camBtn").onclick = startCam;
+$("file").onchange = (e) => { const f = e.target.files[0]; if (f) loadImage(URL.createObjectURL(f)); };
+$("sample").onclick = () => loadImage("sample.jpg");
+$("res").onchange = () => processPhoto();
+$("strength").oninput = () => { $("oStr").textContent = $("strength").value + " %"; refreshThumbs(); };
+$("keepColor").onchange = refreshThumbs;
+$("useGpu").onchange = async () => { await loadModels(); if (mode === "photo") processPhoto(); };
+$("dl").onclick = () => $("out").toBlob((b) => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `style_${selected}.png`; a.click(); });
+
+(async () => {
+  buildGallery();
+  try { await loadModels(); } catch (e) { status("model error"); console.error(e); }
+})();
+</script>
+</body>
+</html>

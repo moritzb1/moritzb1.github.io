@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCTV Traffic Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Unit 3.6 Extra Credit - CCTV-only traffic analytics: vehicle counting + heatmap + speed estimation
+   Moritz Binder (M334422). Layout: header / KPI row / settings rail + stage + analytics column */
+:root{
+  --bg:#0a0d12; --panel:#11161e; --panel2:#151b25; --line:#222b38; --text:#e7ecf3; --muted:#8693a6;
+  --accent:#ffb547; --lineA:#ffd23f; --lineB:#3fd4c6; --in:#4bd18b; --out:#6aa8ff; --warn:#ff5d6c;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px}
+button,input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0f141c,#0a0d12);flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:9px;background:#141b26;border:1px solid var(--line);display:grid;place-items:center}
+.logo svg{width:20px;height:20px}
+header h1{margin:0;font-family:var(--display);font-size:20px}
+header h1 span{color:var(--muted);font-weight:500}
+.badge{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:6px;background:#1d1a12;color:var(--accent);border:1px solid #3a2f17}
+.chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center}
+.chip{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel);text-decoration:none}
+.chip b{color:var(--text);font-weight:600}
+.chip.ok b{color:var(--in)}
+a.chip:hover{border-color:var(--accent);color:var(--text)}
+
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:16px 22px 0}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--display);font-size:34px;font-weight:700;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:14px;color:var(--muted);font-weight:500;margin-left:4px}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--accent))}
+
+main{display:grid;grid-template-columns:270px minmax(0,1fr) 330px;gap:16px;padding:16px 22px 22px}
+@media (max-width:1250px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel h2{margin:0 0 12px;font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.stack{display:grid;gap:16px;align-content:start}
+.presets{display:grid;gap:8px}
+.preset{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;text-align:left;width:100%}
+.preset[aria-pressed="true"]{border-color:var(--accent);background:#1d1a12}
+.preset span:last-child{font-family:var(--mono);font-size:11px;color:var(--muted)}
+input[type=text]{background:#0b0f15;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:12px;width:100%;min-width:0}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1205}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.slider{display:grid;gap:5px}
+.slider .row{justify-content:space-between}
+.slider output{font-family:var(--mono)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+label.check{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+label.check input{accent-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);line-height:1.45}
+.dotA,.dotB{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.dotA{background:var(--lineA)} .dotB{background:var(--lineB)}
+
+.stage-wrap{display:grid;gap:12px;align-content:start}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar .title{font-family:var(--display);font-weight:600;font-size:15px}
+.toolbar .title small{color:var(--muted);font-weight:500;font-family:var(--body);margin-left:6px}
+.toolbar .spacer{flex:1}
+.stage{position:relative;background:#05070a;border:1px solid var(--line);border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+.stage canvas{width:100%;height:100%;display:block;cursor:default}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,7,10,.82);text-align:center;padding:20px}
+.overlay[hidden]{display:none}
+.spinner{width:40px;height:40px;border-radius:50%;border:3px solid #2a3240;border-top-color:var(--accent);animation:spin .9s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay p{margin:4px 0;color:var(--muted)} .overlay p.main{color:var(--text);font-size:16px;font-weight:600}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:800px){.charts{grid-template-columns:1fr}}
+.charts canvas{width:100%;height:150px;display:block}
+
+.classes{display:grid;gap:9px}
+.cl{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center}
+.cl .name{display:flex;align-items:center;gap:8px;font-weight:500}
+.cl .name i{width:10px;height:10px;border-radius:3px;display:block}
+.cl .n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cl .io{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.events{display:grid;gap:3px;max-height:300px;overflow:auto;font-family:var(--mono);font-size:12px}
+.ev{display:grid;grid-template-columns:62px 44px minmax(0,1fr) auto;gap:8px;padding:5px 6px;border-radius:6px}
+.ev:nth-child(odd){background:#0d1219}
+.ev .t{color:var(--muted)} .ev .dir.in{color:var(--in)} .ev .dir.out{color:var(--out)}
+.ev .sp{text-align:right} .ev .sp.fast{color:var(--warn);font-weight:600}
+.empty{color:var(--muted);font-size:13px}
+footer{padding:0 22px 18px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="3" fill="#1d2430" stroke="#3a4656"/><circle cx="12" cy="7" r="2.1" fill="#ff5d6c"/><circle cx="12" cy="12" r="2.1" fill="#ffb547"/><circle cx="12" cy="17" r="2.1" fill="#4bd18b"/></svg></div>
+  <h1>CCTV Traffic Analytics <span>· Unit 3.6</span></h1>
+  <span class="badge">YOLO26n + tracking</span>
+  <div class="chips">
+    <span class="chip" id="chipBackend">Backend <b>–</b></span>
+    <span class="chip" id="chipStatus">Status <b>loading</b></span>
+    <a class="chip" href="index.html">← General YOLO console</a>
+  </div>
+</header>
+
+<section class="kpis" aria-label="Key figures">
+  <div class="kpi" style="--c:var(--accent)"><div class="k">Vehicles counted</div><div class="v" id="kTotal">0</div><div class="s">crossed counting line A</div></div>
+  <div class="kpi" style="--c:var(--in)"><div class="k">Inbound ↓</div><div class="v" id="kIn">0</div><div class="s">towards the camera</div></div>
+  <div class="kpi" style="--c:var(--out)"><div class="k">Outbound ↑</div><div class="v" id="kOut">0</div><div class="s">away from the camera</div></div>
+  <div class="kpi" style="--c:var(--lineB)"><div class="k">Average speed</div><div class="v" id="kSpeed">–<small>km/h</small></div><div class="s" id="kSpeedSub">measured between line A and B</div></div>
+  <div class="kpi" style="--c:var(--warn)"><div class="k">Speeding</div><div class="v" id="kFast">0</div><div class="s" id="kFastSub">above 50 km/h</div></div>
+</section>
+
+<main>
+  <div class="stack">
+    <section class="panel">
+      <h2>CCTV feed</h2>
+      <div class="presets" role="group" aria-label="Camera presets">
+        <button class="preset" type="button" data-url="https://cctv.klcg.gov.tw/facd4662" aria-pressed="true"><span>Keelung crossing</span><span>facd4662</span></button>
+        <button class="preset" type="button" data-url="https://cctv.klcg.gov.tw/41b0eff2" aria-pressed="false"><span>Keelung harbour road</span><span>41b0eff2</span></button>
+      </div>
+      <div class="stack" style="gap:8px;margin-top:10px">
+        <input type="text" id="url" value="https://cctv.klcg.gov.tw/facd4662" aria-label="Stream URL">
+        <div class="row"><button class="btn primary" type="button" id="connect">Connect feed</button></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Lines &amp; calibration</h2>
+      <div class="stack" style="gap:14px">
+        <div class="slider"><div class="row"><span><i class="dotA"></i>Counting line A</span><output id="oA">55 %</output></div>
+          <input type="range" id="lineA" min="10" max="95" value="55" aria-label="Line A position"></div>
+        <div class="slider"><div class="row"><span><i class="dotB"></i>Speed line B</span><output id="oB">78 %</output></div>
+          <input type="range" id="lineB" min="10" max="95" value="78" aria-label="Line B position"></div>
+        <div class="slider"><div class="row"><span>Real distance A → B</span><output id="oD">10 m</output></div>
+          <input type="range" id="dist" min="2" max="40" value="10" aria-label="Distance between the lines in metres"></div>
+        <div class="slider"><div class="row"><span>Speed limit</span><output id="oL">50 km/h</output></div>
+          <input type="range" id="limit" min="20" max="100" step="5" value="50" aria-label="Speed limit"></div>
+        <p class="hint">Drag the lines directly in the video. Speed = distance A→B ÷ time a vehicle needs between the two lines. Set the distance to a known length, e.g. two lane-marking lengths.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Heatmap</h2>
+      <div class="stack" style="gap:12px">
+        <label class="check"><input type="checkbox" id="heat" checked> Show traffic density heatmap</label>
+        <div class="slider"><div class="row"><span>Opacity</span><output id="oH">55 %</output></div>
+          <input type="range" id="heatAlpha" min="10" max="90" value="55" aria-label="Heatmap opacity"></div>
+        <label class="check"><input type="checkbox" id="labels" checked> Show IDs &amp; speeds</label>
+        <div class="slider"><div class="row"><span>Confidence</span><output id="oC">30 %</output></div>
+          <input type="range" id="conf" min="10" max="80" value="30" aria-label="Confidence threshold"></div>
+        <button class="btn" type="button" id="reset">Reset statistics</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="toolbar">
+      <span class="title" id="title">Live CCTV <small>Keelung crossing</small></span>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="pause">Pause</button>
+      <button class="btn" type="button" id="csv">Export CSV</button>
+      <button class="btn" type="button" id="snap">Save snapshot</button>
+    </div>
+    <div class="stage">
+      <canvas id="view" width="1280" height="720" aria-label="Traffic camera with detections"></canvas>
+      <div class="overlay" id="overlay"><div><div class="spinner"></div><p class="main" id="ovMain">Loading YOLO26 model…</p><p id="ovSub"></p></div></div>
+    </div>
+    <div class="charts">
+      <section class="panel"><h2>Vehicles per minute</h2><canvas id="flow" width="600" height="200"></canvas></section>
+      <section class="panel"><h2>Speed distribution</h2><canvas id="hist" width="600" height="200"></canvas></section>
+    </div>
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <h2>By vehicle type</h2>
+      <div class="classes" id="classes"></div>
+    </section>
+    <section class="panel">
+      <h2>Now in view</h2>
+      <div class="row" style="justify-content:space-between"><span class="hint">tracked vehicles</span><b id="active" style="font-family:var(--display);font-size:22px">0</b></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">detection rate</span><b id="fps" style="font-family:var(--mono)">– fps</b></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">inference</span><b id="inf" style="font-family:var(--mono)">– ms</b></div>
+    </section>
+    <section class="panel">
+      <h2>Crossing log</h2>
+      <div class="events" id="events"><span class="empty">Waiting for the first vehicle to cross line A…</span></div>
+    </section>
+  </div>
+</main>
+<footer>YOLO26n (Ultralytics) in the browser with ONNX Runtime Web · own IoU tracker · two-line speed trap · Moritz Binder, HS Pforzheim</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const S = 640;
+const VEHICLES = { bicycle: "#b48cff", car: "#ffb547", motorcycle: "#3fd4c6", bus: "#ff7a59", truck: "#6aa8ff" };
+let labels = [], session = null, img = null, frozen = null, paused = false, busy = false;
+const view = $("view"), ctx = view.getContext("2d");
+const pre = document.createElement("canvas"); pre.width = pre.height = S;
+const pctx = pre.getContext("2d", { willReadFrequently: true });
+
+// ---------------- statistics ----------------
+let tracks = [], nextId = 1, events = [], speeds = [];
+const totals = { all: 0, in: 0, out: 0, byClass: {} };
+const minutes = new Map();                       // minute timestamp -> count
+const GW = 96, GH = 54; let heat = new Float32Array(GW * GH);
+function resetStats() {
+  tracks = []; nextId = 1; events = []; speeds = [];
+  totals.all = totals.in = totals.out = 0; totals.byClass = {};
+  minutes.clear(); heat = new Float32Array(GW * GH);
+  renderPanels();
+}
+
+// ---------------- model ----------------
+async function loadModel() {
+  labels = await (await fetch("model/labels.json")).json();
+  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
+  for (const ep of ["webgpu", "wasm"]) {
+    try {
+      if (ep === "webgpu" && !navigator.gpu) continue;
+      session = await ort.InferenceSession.create("model/yolo26n.onnx", { executionProviders: [ep] });
+      $("chipBackend").innerHTML = `Backend <b>${ep === "webgpu" ? "WebGPU" : "WASM"}</b>`;
+      return;
+    } catch (e) { console.warn(e); }
+  }
+  throw new Error("model");
+}
+function iou(a, b) {
+  const x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y), x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+  const i = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  return i / (a.w * a.h + b.w * b.h - i + 1e-6);
+}
+async function detect(src, w, h) {
+  const sc = Math.min(S / w, S / h), nw = Math.round(w * sc), nh = Math.round(h * sc), px = (S - nw) / 2, py = (S - nh) / 2;
+  pctx.fillStyle = "rgb(114,114,114)"; pctx.fillRect(0, 0, S, S);
+  pctx.drawImage(src, 0, 0, w, h, px, py, nw, nh);
+  const d = pctx.getImageData(0, 0, S, S).data, n = S * S, input = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) { input[i] = d[i * 4] / 255; input[n + i] = d[i * 4 + 1] / 255; input[2 * n + i] = d[i * 4 + 2] / 255; }
+  const out = await session.run({ images: new ort.Tensor("float32", input, [1, 3, S, S]) });
+  const o = out[session.outputNames[0]].data, N = 8400, conf = $("conf").value / 100, cand = [];
+  for (let j = 0; j < N; j++) {
+    let best = 0, cls = -1;
+    for (const name of Object.keys(VEHICLES)) { const c = labels.indexOf(name), v = o[(4 + c) * N + j]; if (v > best) { best = v; cls = c; } }
+    if (best < conf) continue;
+    const cx = o[j], cy = o[N + j], bw = o[2 * N + j], bh = o[3 * N + j];
+    cand.push({ cls: labels[cls], score: best, x: (cx - bw / 2 - px) / sc, y: (cy - bh / 2 - py) / sc, w: bw / sc, h: bh / sc });
+  }
+  cand.sort((a, b) => b.score - a.score);
+  const keep = [];
+  for (const c of cand) if (keep.every((k) => iou(k, c) < 0.5)) keep.push(c);   // class-agnostic NMS for vehicles
+  return keep;
+}
+
+// ---------------- tracking, counting, speed ----------------
+function lineY(id, h) { return ($(id).value / 100) * h; }
+function update(dets, t, w, h) {
+  const yA = lineY("lineA", h), yB = lineY("lineB", h);
+  const used = new Set();
+  // Match detections to tracks. The public CCTV stream only sends ~1-2 frames per second,
+  // so vehicles jump far between frames: predict each track's position from its velocity
+  // and allow a generous search radius around the prediction.
+  const pairs = [];
+  tracks.forEach((tr, ti) => {
+    const dt = t - tr.last, px = tr.cx + tr.vx * dt, py = tr.cy + tr.vy * dt;
+    dets.forEach((d, di) => {
+      const cx = d.x + d.w / 2, cy = d.y + d.h / 2;
+      const dist = Math.hypot(px - cx, py - cy), radius = Math.max(d.w, d.h) * 1.6 + 25;
+      const s = iou(tr.box, d);
+      if (s > 0.1 || dist < radius) pairs.push([s * 2 + 1 - dist / radius, ti, di]);
+    });
+  });
+  pairs.sort((a, b) => b[0] - a[0]);
+  const tUsed = new Set();
+  for (const [, ti, di] of pairs) {
+    if (tUsed.has(ti) || used.has(di)) continue;
+    tUsed.add(ti); used.add(di);
+    const tr = tracks[ti], d = dets[di];
+    const ncx = d.x + d.w / 2, ncy = d.y + d.h / 2, dt = Math.max(1e-3, t - tr.last);
+    crossing(tr, tr.cy, ncy, tr.last, t, yA, "A");
+    crossing(tr, tr.cy, ncy, tr.last, t, yB, "B");
+    // smoothed velocity (px per second) for the next prediction
+    tr.vx = tr.seen ? 0.5 * tr.vx + 0.5 * (ncx - tr.cx) / dt : (ncx - tr.cx) / dt;
+    tr.vy = tr.seen ? 0.5 * tr.vy + 0.5 * (ncy - tr.cy) / dt : (ncy - tr.cy) / dt;
+    tr.seen++;
+    tr.box = d; tr.cx = ncx; tr.cy = ncy; tr.last = t; tr.votes[d.cls] = (tr.votes[d.cls] || 0) + 1;
+    tr.trail.push([ncx, ncy]); if (tr.trail.length > 25) tr.trail.shift();
+  }
+  dets.forEach((d, di) => {
+    if (used.has(di)) return;
+    tracks.push({ id: nextId++, box: d, cx: d.x + d.w / 2, cy: d.y + d.h / 2, vx: 0, vy: 0, seen: 0, last: t, votes: { [d.cls]: 1 }, trail: [[d.x + d.w / 2, d.y + d.h / 2]], tA: null, tB: null, counted: false, speed: null });
+  });
+  tracks = tracks.filter((tr) => t - tr.last < 3);
+  // heatmap
+  for (const d of dets) {
+    const gx = Math.floor(((d.x + d.w / 2) / w) * GW), gy = Math.floor(((d.y + d.h * 0.75) / h) * GH);
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+      const x = gx + dx, y = gy + dy; if (x < 0 || y < 0 || x >= GW || y >= GH) continue;
+      heat[y * GW + x] += Math.exp(-(dx * dx + dy * dy) / 4);
+    }
+  }
+}
+function cls(tr) { return Object.entries(tr.votes).sort((a, b) => b[1] - a[1])[0][0]; }
+function crossing(tr, y0, y1, t0, t1, ly, which) {
+  const down = y0 < ly && y1 >= ly, up = y0 > ly && y1 <= ly;
+  if (!down && !up) return;
+  // interpolate the exact moment the centre crossed the line (frames are ~0.5-1 s apart)
+  const t = t0 + ((ly - y0) / (y1 - y0)) * (t1 - t0);
+  if (which === "A") {
+    tr.tA = t;
+    if (!tr.counted) {
+      tr.counted = true; tr.dir = down ? "in" : "out";
+      const c = cls(tr);
+      totals.all++; totals[tr.dir]++;
+      totals.byClass[c] = totals.byClass[c] || { in: 0, out: 0 }; totals.byClass[c][tr.dir]++;
+      const m = Math.floor(Date.now() / 60000); minutes.set(m, (minutes.get(m) || 0) + 1);
+      events.unshift({ time: new Date(), id: tr.id, cls: c, dir: tr.dir, speed: null });
+    }
+  } else tr.tB = t;
+  if (tr.tA !== null && tr.tB !== null && tr.speed === null) {
+    const dt = Math.abs(tr.tB - tr.tA);
+    if (dt > 0.12) {
+      const kmh = ($("dist").value / dt) * 3.6;
+      if (kmh < 160) {
+        tr.speed = kmh; speeds.push(kmh); if (speeds.length > 200) speeds.shift();
+        const ev = events.find((e) => e.id === tr.id); if (ev) ev.speed = kmh;
+      }
+    }
+  }
+}
+
+// ---------------- drawing ----------------
+const heatCanvas = document.createElement("canvas"); heatCanvas.width = GW; heatCanvas.height = GH;
+const hctx = heatCanvas.getContext("2d");
+function colormap(v) {        // 0..1 -> blue, cyan, green, yellow, red
+  const stops = [[0, [30, 60, 255]], [0.35, [0, 220, 255]], [0.55, [60, 230, 90]], [0.75, [255, 220, 40]], [1, [255, 40, 40]]];
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) {
+    const [a, ca] = stops[i - 1], [b, cb] = stops[i], f = (v - a) / (b - a);
+    return ca.map((c, k) => Math.round(c + (cb[k] - c) * f));
+  }
+  return stops[stops.length - 1][1];
+}
+function drawHeat(w, h) {
+  // scale by the 90th percentile of non-empty cells, so parked cars don't drown out the lanes
+  const nz = []; for (const v of heat) if (v > 0.05) nz.push(v);
+  if (!nz.length) return;
+  nz.sort((a, b) => a - b);
+  const ref = nz[Math.floor(nz.length * 0.9)] || nz[nz.length - 1];
+  const im = hctx.createImageData(GW, GH);
+  for (let i = 0; i < heat.length; i++) {
+    const v = Math.min(1, Math.sqrt(heat[i] / ref)); if (v < 0.08) continue;
+    const [r, g, b] = colormap(v);
+    im.data[i * 4] = r; im.data[i * 4 + 1] = g; im.data[i * 4 + 2] = b; im.data[i * 4 + 3] = Math.min(255, 60 + v * 195);
+  }
+  hctx.putImageData(im, 0, 0);
+  ctx.save(); ctx.globalAlpha = $("heatAlpha").value / 100; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(heatCanvas, 0, 0, w, h); ctx.restore();
+}
+// The CCTV camera sends an MJPEG stream (a never-ending series of JPEG images).
+// Firefox only hands the FIRST frame of such a stream to a canvas, so we read the
+// stream ourselves with fetch() and decode every JPEG frame separately.
+class MjpegStream {
+  constructor(url) { this.url = url; this.frame = null; this.id = 0; this.time = 0; this.ctrl = new AbortController(); this.busy = false; }
+  async start() {
+    const res = await fetch(this.url, { signal: this.ctrl.signal, cache: "no-store" });
+    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+    const reader = res.body.getReader();
+    let buf = new Uint8Array(0);
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const nb = new Uint8Array(buf.length + value.length); nb.set(buf); nb.set(value, buf.length); buf = nb;
+      for (;;) {
+        const s = find(buf, 0xd8, 0); if (s < 0) { buf = new Uint8Array(0); break; }
+        const e = find(buf, 0xd9, s + 2); if (e < 0) { if (s > 0) buf = buf.slice(s); break; }
+        this.decode(buf.slice(s, e + 2)); buf = buf.slice(e + 2);
+      }
+      if (buf.length > 8e6) buf = new Uint8Array(0);
+    }
+  }
+  async decode(jpg) {
+    if (this.busy) return;                 // drop a frame rather than fall behind
+    this.busy = true;
+    try {
+      const bmp = await createImageBitmap(new Blob([jpg], { type: "image/jpeg" }));
+      const old = this.frame; this.frame = bmp; this.id++; this.time = performance.now() / 1000;
+      if (old && old.close) setTimeout(() => old.close(), 1000);
+    } catch (e) { /* incomplete frame */ }
+    this.busy = false;
+  }
+  stop() { this.ctrl.abort(); }
+}
+function find(b, marker, from) { for (let i = from; i < b.length - 1; i++) if (b[i] === 0xff && b[i + 1] === marker) return i; return -1; }
+let stream = null;
+function source() { return paused ? frozen : (stream && stream.frame); }
+function srcSize() { const s = source(); return s ? [s.width, s.height] : null; }
+
+function draw() {
+  const size = srcSize(); if (!size) return;
+  const [w, h] = size, k = Math.max(1, 1280 / w), cw = Math.round(w * k), ch = Math.round(h * k);
+  if (view.width !== cw || view.height !== ch) { view.width = cw; view.height = ch; }
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.drawImage(source(), 0, 0, w, h);
+  if ($("heat").checked) drawHeat(w, h);
+  const fs = 18 / k, lw = 2.5 / k;
+  // lines
+  const yA = lineY("lineA", h), yB = lineY("lineB", h);
+  ctx.setLineDash([12 / k, 8 / k]);
+  [[yA, "#ffd23f", `A · COUNTING LINE   in ${totals.in}  out ${totals.out}`], [yB, "#3fd4c6", `B · SPEED LINE   A→B = ${$("dist").value} m`]].forEach(([y, c, t]) => {
+    ctx.strokeStyle = c; ctx.lineWidth = 3 / k; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    ctx.font = `600 ${fs * 0.8}px "IBM Plex Mono", monospace`;
+    const tw = ctx.measureText(t).width + 16 / k;
+    ctx.fillStyle = "rgba(10,13,18,.75)"; ctx.fillRect(w - tw - 10 / k, y - fs * 1.35, tw, fs * 1.15);
+    ctx.fillStyle = c; ctx.fillText(t, w - tw - 2 / k, y - fs * 0.48);
+  });
+  ctx.setLineDash([]);
+  // vehicles
+  const limit = Number($("limit").value);
+  ctx.font = `600 ${fs * 0.85}px "IBM Plex Sans", sans-serif`;
+  for (const tr of tracks) {
+    const b = tr.box, c = cls(tr), col = VEHICLES[c] || "#fff", fast = tr.speed !== null && tr.speed > limit;
+    ctx.strokeStyle = fast ? "#ff5d6c" : col; ctx.lineWidth = fast ? lw * 1.6 : lw;
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+    if (tr.trail.length > 1) {
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.7; ctx.lineWidth = lw;
+      ctx.beginPath(); tr.trail.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    if ($("labels").checked) {
+      const t = `#${tr.id} ${c}` + (tr.speed !== null ? ` · ${tr.speed.toFixed(0)} km/h` : "");
+      const tw = ctx.measureText(t).width + fs * 0.6, th = fs * 1.25, ty = Math.max(0, b.y - th);
+      ctx.fillStyle = fast ? "#ff5d6c" : col; ctx.fillRect(b.x - lw / 2, ty, tw, th);
+      ctx.fillStyle = "#0a0d12"; ctx.fillText(t, b.x + fs * 0.3, ty + th * 0.75);
+    }
+  }
+  // HUD
+  ctx.font = `600 ${fs * 0.85}px "IBM Plex Mono", monospace`;
+  const avg = speeds.length ? speeds.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, speeds.length) : null;
+  const hud = `${paused ? "■ PAUSED" : "● LIVE CCTV"}   ${new Date().toLocaleString("en-GB")}   total ${totals.all}   avg ${avg ? avg.toFixed(0) + " km/h" : "–"}`;
+  const tw = ctx.measureText(hud).width + 24 / k;
+  ctx.fillStyle = "rgba(10,13,18,.75)"; ctx.fillRect(10 / k, 10 / k, tw, fs * 1.6);
+  ctx.fillStyle = paused ? "#3fd4c6" : "#ff5d6c"; ctx.fillText(hud[0], 22 / k, 10 / k + fs * 1.1);
+  ctx.fillStyle = "#e7ecf3"; ctx.fillText(hud.slice(1), 22 / k, 10 / k + fs * 1.1);
+  ctx.font = `600 ${fs * 0.7}px "IBM Plex Mono", monospace`; ctx.fillStyle = "rgba(231,236,243,.75)";
+  ctx.fillText("YOLO26n traffic analytics · Moritz Binder", 10 / k, h - 10 / k);
+}
+
+// ---------------- panels & charts ----------------
+function renderPanels() {
+  $("kTotal").textContent = totals.all; $("kIn").textContent = totals.in; $("kOut").textContent = totals.out;
+  const recent = speeds.slice(-20), avg = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
+  $("kSpeed").innerHTML = `${avg ? avg.toFixed(1) : "–"}<small>km/h</small>`;
+  $("kSpeedSub").textContent = speeds.length ? `last ${recent.length} measured vehicles` : "measured between line A and B";
+  const limit = Number($("limit").value), fast = speeds.filter((s) => s > limit).length;
+  $("kFast").textContent = fast; $("kFastSub").textContent = `above ${limit} km/h`;
+  $("active").textContent = tracks.length;
+  $("classes").innerHTML = Object.keys(VEHICLES).map((c) => {
+    const v = totals.byClass[c] || { in: 0, out: 0 };
+    return `<div class="cl"><span class="name"><i style="background:${VEHICLES[c]}"></i>${c}</span><span class="io">↓${v.in} ↑${v.out}</span><span class="n">${v.in + v.out}</span></div>`;
+  }).join("");
+  $("events").innerHTML = events.length ? events.slice(0, 40).map((e) =>
+    `<div class="ev"><span class="t">${e.time.toLocaleTimeString("en-GB")}</span><span class="dir ${e.dir}">${e.dir === "in" ? "↓ in" : "↑ out"}</span><span>#${e.id} ${e.cls}</span><span class="sp ${e.speed > limit ? "fast" : ""}">${e.speed ? e.speed.toFixed(0) + " km/h" : "–"}</span></div>`
+  ).join("") : `<span class="empty">Waiting for the first vehicle to cross line A…</span>`;
+  drawFlow(); drawHist();
+}
+function axes(g, W, H) { g.clearRect(0, 0, W, H); g.strokeStyle = "#222b38"; g.lineWidth = 1; for (let i = 1; i < 4; i++) { const y = 20 + ((H - 50) * i) / 4; g.beginPath(); g.moveTo(30, y); g.lineTo(W, y); g.stroke(); } }
+function drawFlow() {
+  const c = $("flow"), g = c.getContext("2d"), W = c.width, H = c.height; axes(g, W, H);
+  const now = Math.floor(Date.now() / 60000), data = []; for (let i = 9; i >= 0; i--) data.push(minutes.get(now - i) || 0);
+  const max = Math.max(4, ...data), bw = (W - 40) / 10;
+  g.font = "20px IBM Plex Mono"; g.fillStyle = "#8693a6"; g.fillText(String(max), 0, 28); g.fillText("0", 0, H - 30);
+  data.forEach((v, i) => {
+    const bh = ((H - 50) * v) / max, x = 34 + i * bw;
+    g.fillStyle = i === 9 ? "#ffb547" : "#5a4a2a"; g.fillRect(x + 4, H - 30 - bh, bw - 8, bh);
+    g.fillStyle = "#8693a6"; g.font = "18px IBM Plex Mono"; g.fillText(i === 9 ? "now" : `-${9 - i}`, x + bw / 2 - 14, H - 6);
+  });
+}
+function drawHist() {
+  const c = $("hist"), g = c.getContext("2d"), W = c.width, H = c.height; axes(g, W, H);
+  const bins = [0, 10, 20, 30, 40, 50, 60, 70], counts = bins.map((b, i) => speeds.filter((s) => s >= b && (i === bins.length - 1 || s < bins[i + 1])).length);
+  const max = Math.max(3, ...counts), bw = (W - 40) / bins.length, limit = Number($("limit").value);
+  g.font = "20px IBM Plex Mono"; g.fillStyle = "#8693a6"; g.fillText(String(max), 0, 28); g.fillText("0", 0, H - 30);
+  counts.forEach((v, i) => {
+    const bh = ((H - 50) * v) / max, x = 34 + i * bw;
+    g.fillStyle = bins[i] >= limit ? "#ff5d6c" : "#3fd4c6"; g.fillRect(x + 4, H - 30 - bh, bw - 8, bh);
+    g.fillStyle = "#8693a6"; g.font = "18px IBM Plex Mono"; g.fillText(i === bins.length - 1 ? `${bins[i]}+` : String(bins[i]), x + bw / 2 - 12, H - 6);
+  });
+}
+
+// ---------------- feed & controls ----------------
+function overlay(main, sub, spin = true) {
+  $("overlay").hidden = !main; if (!main) return;
+  $("ovMain").textContent = main; $("ovSub").textContent = sub || ""; $("overlay").querySelector(".spinner").style.display = spin ? "" : "none";
+}
+function setStatus(t, ok) { $("chipStatus").innerHTML = `Status <b>${t}</b>`; $("chipStatus").className = "chip" + (ok ? " ok" : ""); }
+function connect() {
+  const url = $("url").value.trim(); paused = false; $("pause").textContent = "Pause";
+  resetStats(); overlay("Connecting to live stream…", url); setStatus("connecting");
+  if (stream) stream.stop();
+  const s = stream = new MjpegStream(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now());
+  s.start().catch((e) => {
+    if (s !== stream || e.name === "AbortError") return;
+    overlay("Stream not reachable", "Check the URL or your connection. (" + e.message + ")", false); setStatus("no stream");
+  });
+  const preset = [...document.querySelectorAll(".preset")].find((p) => p.dataset.url === url);
+  $("title").innerHTML = `Live CCTV <small>${preset ? preset.firstElementChild.textContent : url}</small>`;
+  const wait = setInterval(() => { if (s !== stream) return clearInterval(wait); if (s.frame) { clearInterval(wait); overlay(null); setStatus("live", true); } }, 200);
+}
+document.querySelectorAll(".preset").forEach((p) => p.addEventListener("click", () => {
+  document.querySelectorAll(".preset").forEach((x) => x.setAttribute("aria-pressed", x === p));
+  $("url").value = p.dataset.url; connect();
+}));
+$("connect").onclick = connect;
+$("reset").onclick = resetStats;
+$("pause").onclick = () => {
+  if (!paused && stream && stream.frame) {
+    const f = stream.frame;
+    frozen = document.createElement("canvas"); frozen.width = f.width; frozen.height = f.height;
+    frozen.getContext("2d").drawImage(f, 0, 0); paused = true;
+  } else paused = false;
+  $("pause").textContent = paused ? "Resume" : "Pause";
+};
+const outputs = { lineA: ["oA", (v) => v + " %"], lineB: ["oB", (v) => v + " %"], dist: ["oD", (v) => v + " m"], limit: ["oL", (v) => v + " km/h"], heatAlpha: ["oH", (v) => v + " %"], conf: ["oC", (v) => v + " %"] };
+Object.entries(outputs).forEach(([id, [out, f]]) => $(id).addEventListener("input", () => { $(out).textContent = f($(id).value); renderPanels(); }));
+$("snap").onclick = () => view.toBlob((b) => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `traffic_${Date.now()}.png`; a.click(); });
+$("csv").onclick = () => {
+  const rows = [["time", "vehicle_id", "type", "direction", "speed_kmh"], ...events.slice().reverse().map((e) => [e.time.toISOString(), e.id, e.cls, e.dir, e.speed ? e.speed.toFixed(1) : ""])];
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.map((r) => r.join(",")).join("\n")], { type: "text/csv" }));
+  a.download = `traffic_counts_${Date.now()}.csv`; a.click();
+};
+// drag the lines in the video
+let dragging = null;
+function canvasY(e) { const r = view.getBoundingClientRect(); return ((e.clientY - r.top) / r.height) * 100; }
+view.addEventListener("pointerdown", (e) => {
+  const y = canvasY(e), dA = Math.abs(y - $("lineA").value), dB = Math.abs(y - $("lineB").value);
+  if (Math.min(dA, dB) < 4) { dragging = dA <= dB ? "lineA" : "lineB"; view.setPointerCapture(e.pointerId); }
+});
+view.addEventListener("pointermove", (e) => {
+  const y = canvasY(e);
+  if (dragging) { $(dragging).value = Math.round(Math.min(95, Math.max(10, y))); $(dragging).dispatchEvent(new Event("input")); }
+  else view.style.cursor = Math.min(Math.abs(y - $("lineA").value), Math.abs(y - $("lineB").value)) < 4 ? "ns-resize" : "default";
+});
+view.addEventListener("pointerup", () => { dragging = null; });
+
+// ---------------- loop ----------------
+let lastT = 0, rate = 0, lastPanel = 0, lastHash = null;
+const probe = document.createElement("canvas"); probe.width = 32; probe.height = 18;
+const prctx = probe.getContext("2d", { willReadFrequently: true });
+function frameHash(src) {         // tiny fingerprint to notice when the MJPEG stream delivers a new frame
+  prctx.drawImage(src, 0, 0, 32, 18);
+  const d = prctx.getImageData(0, 0, 32, 18).data; let h = 0;
+  for (let i = 0; i < d.length; i += 3) h = (h * 31 + d[i]) | 0;
+  return h;
+}
+async function step() {
+  const size = srcSize();
+  if (!session || !size || busy) return;
+  let t = performance.now() / 1000;
+  if (!paused) { if (stream.id === lastHash) return; lastHash = stream.id; t = stream.time; }   // only new camera frames
+  busy = true;
+  try {
+    const t0 = performance.now();
+    const dets = await detect(source(), size[0], size[1]);
+    if (!paused) update(dets, t, size[0], size[1]);
+    else tracks.forEach((tr) => { const m = dets.find((d) => iou(d, tr.box) > 0.3); if (m) tr.box = m; });
+    $("inf").textContent = `${(performance.now() - t0).toFixed(0)} ms`;
+    if (lastT) rate = rate * 0.8 + (1 / (t - lastT)) * 0.2; lastT = t;
+    $("fps").textContent = `${rate.toFixed(1)} fps (camera)`;
+    if (performance.now() - lastPanel > 400) { renderPanels(); lastPanel = performance.now(); }
+  } catch (e) { console.error(e); }
+  busy = false;
+}
+function loop() { try { draw(); } catch (e) {} step(); requestAnimationFrame(loop); }
+(async () => {
+  resetStats();
+  try { await loadModel(); setStatus("ready", true); connect(); }
+  catch (e) { overlay("Could not load the model", "Start the app with run_traffic.command.", false); setStatus("error"); }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

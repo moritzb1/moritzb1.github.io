@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YOLO26 Multi-Task Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Extra Credit #3-8 - YOLO26 nano multi-task webcam lab (Moritz Binder, M334422)
+   Layout: header / control rail / live stage + KPI tiles / task insight column */
+:root{
+  --bg:#0b0e14; --panel:#121722; --panel2:#171d2a; --line:#232c3d; --text:#e8edf5; --muted:#8a96aa;
+  --accent:#7c9cff; --accent2:#38d6b4; --warn:#ff6b7a; --gold:#ffc35c;
+  --display:"Sora",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px}
+button,input,select{font:inherit;color:inherit}
+button:focus-visible,select:focus-visible,input:focus-visible,label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#101522,#0b0e14);flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#141b2a;border:1px solid var(--line)}
+.logo svg{width:20px;height:20px}
+header h1{margin:0;font-family:var(--display);font-size:20px;font-weight:700}
+header h1 span{color:var(--muted);font-weight:500;font-size:15px}
+.badge{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:6px;background:#161f36;color:var(--accent);border:1px solid #2b3a63}
+.chips{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel)}
+.chip b{color:var(--text);font-weight:600}
+.chip.ok b{color:var(--accent2)} .chip.bad b{color:var(--warn)}
+main{display:grid;grid-template-columns:280px minmax(0,1fr) 320px;gap:16px;padding:16px 22px 22px}
+@media (max-width:1200px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel h2{margin:0 0 12px;font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stack{display:grid;gap:16px;align-content:start}
+select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#0b1020}
+.btn.wide{width:100%}
+input[type=file]{display:none}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer}
+.switch input{appearance:none;width:42px;height:24px;border-radius:999px;background:#2a3346;position:relative;cursor:pointer;transition:background .2s;flex:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.switch input:checked{background:var(--accent2)} .switch input:checked::after{left:21px}
+.slider{display:grid;gap:6px}
+.slider .row{display:flex;justify-content:space-between}
+.slider output{font-family:var(--mono);color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:#1a2440;border-color:var(--accent);color:var(--accent)}
+.models{display:grid;gap:6px;font-size:12.5px}
+.models div{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono)}
+.models i{font-style:normal;color:var(--muted)} .models i.on{color:var(--accent2)} .models i.cur{color:var(--gold)}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+.stage-wrap{display:grid;gap:12px;align-content:start}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.toolbar .title{font-family:var(--display);font-weight:600;font-size:16px}
+.toolbar .title small{color:var(--muted);font-family:var(--body);font-weight:500;margin-left:6px}
+.toolbar .spacer{flex:1}
+.stage{position:relative;background:#05070b;border:1px solid var(--line);border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+.stage canvas{width:100%;height:100%;object-fit:contain;display:block}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,7,11,.82);text-align:center;padding:24px}
+.overlay .box{max-width:460px}
+.overlay p{margin:6px 0;color:var(--muted);line-height:1.5}
+.overlay p.main{color:var(--text);font-size:17px;font-weight:600}
+.overlay.err p.main{color:var(--warn)}
+.loading{position:absolute;left:50%;top:16px;transform:translateX(-50%);background:rgba(18,23,34,.92);border:1px solid var(--line);border-radius:999px;padding:8px 16px;display:flex;gap:10px;align-items:center;font-weight:600}
+.spinner{width:18px;height:18px;border-radius:50%;border:2px solid #2a3346;border-top-color:var(--accent);animation:spin .8s linear infinite}
+.overlay .spinner{width:36px;height:36px;border-width:3px;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:var(--display);font-size:22px;font-weight:700;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v small{font-size:13px;color:var(--muted);font-weight:500;margin-left:3px}
+
+.bars{display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.bar .n{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .p{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.bar .t{grid-column:1/3;height:7px;border-radius:4px;background:#0b0f17;overflow:hidden}
+.bar .t i{display:block;height:100%;border-radius:4px}
+.empty{color:var(--muted);font-size:13px}
+.legend{height:12px;border-radius:6px;background:linear-gradient(90deg,#30123b,#4662d7,#36aaf9,#1ae4b6,#72fe5e,#c8ef34,#faba39,#f66b19,#ca2a04,#7a0403)}
+.legend-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+.about p{margin:0 0 8px;font-size:13px;line-height:1.55;color:#c7cfdc}
+footer{padding:0 22px 18px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#7c9cff" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 15l3-4 3 3 2-2 3 3" stroke="#38d6b4"/></svg></div>
+  <h1>YOLO26 Multi-Task Lab <span>· Extra Credit #3-8</span></h1>
+  <span class="badge">7 nano models · ONNX Runtime Web</span>
+  <div class="chips">
+    <span class="chip" id="chipTask">Task <b>–</b></span>
+    <span class="chip" id="chipBackend">Backend <b>–</b></span>
+    <span class="chip" id="chipFps">FPS <b>–</b></span>
+  </div>
+</header>
+
+<main>
+  <div class="stack">
+    <section class="panel">
+      <h2>Task</h2>
+      <select id="task" aria-label="YOLO26 task">
+        <option value="detect">Object detection · yolo26n</option>
+        <option value="segment">Instance segmentation · yolo26n-seg</option>
+        <option value="semantic">Semantic segmentation · yolo26n-sem</option>
+        <option value="depth">Depth estimation · yolo26n-depth</option>
+        <option value="classify">Classification · yolo26n-cls</option>
+        <option value="pose">Pose estimation · yolo26n-pose</option>
+        <option value="obb">Oriented boxes (OBB) · yolo26n-obb</option>
+      </select>
+      <p class="hint" id="taskHint" style="margin:10px 0 0"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Performance</h2>
+      <div class="stack" style="gap:14px">
+        <label class="switch"><span>Use GPU (WebGPU)</span><input type="checkbox" id="gpu" aria-label="Use GPU (WebGPU)"></label>
+        <div><div class="hint" style="margin-bottom:6px">Run inference on</div>
+          <div class="seg" role="group" aria-label="Frame skipping">
+            <button type="button" data-n="1" aria-pressed="false">every frame</button>
+            <button type="button" data-n="2" aria-pressed="true">every 2nd</button>
+            <button type="button" data-n="3" aria-pressed="false">every 3rd</button>
+          </div></div>
+        <div class="slider"><div class="row"><span>Confidence</span><output id="oConf">35 %</output></div>
+          <input type="range" id="conf" min="10" max="90" value="35" aria-label="Confidence threshold"></div>
+        <p class="hint" style="margin:0">Input size 320 × 320 (classification 224). WASM runs multi-threaded when started locally with serve.py (COOP/COEP headers); on GitHub Pages it runs single-threaded.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Source</h2>
+      <div class="stack" style="gap:8px">
+        <button class="btn primary wide" type="button" id="camBtn">Use webcam</button>
+        <label class="btn wide" for="file">Test with an image</label>
+        <input type="file" id="file" accept="image/*">
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Models (loaded on demand)</h2>
+      <div class="models" id="models"></div>
+    </section>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="toolbar">
+      <span class="title" id="title">Live webcam <small id="sub">all tasks on the same video</small></span>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="snap">Save snapshot</button>
+    </div>
+    <div class="stage">
+      <canvas id="view" width="1280" height="720"></canvas>
+      <div class="loading" id="loading" hidden><div class="spinner"></div><span id="loadingTxt">Loading model…</span></div>
+      <div class="overlay" id="overlay"><div class="box"><div class="spinner" id="ovSpin"></div><p class="main" id="ovMain">Starting…</p><p id="ovSub"></p></div></div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">Current task</div><div class="v" id="tTask">–</div></div>
+      <div class="tile"><div class="k">Backend</div><div class="v" id="tBackend">–</div></div>
+      <div class="tile"><div class="k">FPS</div><div class="v" id="tFps">–<small>video</small></div></div>
+      <div class="tile"><div class="k">Inference</div><div class="v" id="tInf">–<small>ms</small></div></div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <h2 id="insTitle">Results</h2>
+      <div id="insight"><div class="empty">Waiting for the first frame…</div></div>
+    </section>
+    <section class="panel about">
+      <h2>About this task</h2>
+      <div id="about"></div>
+    </section>
+  </div>
+</main>
+<footer>Ultralytics YOLO26 nano models exported with model.export(format="onnx") · ONNX Runtime Web (WASM default, optional WebGPU) · no TensorFlow.js · Moritz Binder, HS Pforzheim</footer>
+<video id="video" playsinline muted hidden></video>
+
+<script src="../shared/ort/ort.webgpu.min.js"></script>
+<script>
+// ===========================================================================
+// Setup
+// ===========================================================================
+const $ = (id) => document.getElementById(id);
+const TASKS = {
+  detect:   { label: "Object detection", model: "yolo26n", file: "yolo26n.onnx", size: 320,
+              hint: "80 everyday objects with boxes.", about: "Finds objects and draws a box around each one. YOLO26 is end-to-end: the model already outputs the final 300 boxes, so no extra NMS step is needed." },
+  segment:  { label: "Instance segmentation", model: "yolo26n-seg", file: "yolo26n-seg.onnx", size: 320,
+              hint: "Pixel masks for each detected object.", about: "Like detection, but every object also gets a pixel mask. The model outputs 32 mask coefficients per object that are combined with 32 prototype masks." },
+  semantic: { label: "Semantic segmentation", model: "yolo26n-sem", file: "yolo26n-sem.onnx", size: 320,
+              hint: "Every pixel gets a class (street scenes).", about: "Labels every pixel with one of 19 street-scene classes (Cityscapes): road, building, vegetation, sky, person, car … It works best on street photos." },
+  depth:    { label: "Depth estimation", model: "yolo26n-depth", file: "yolo26n-depth.onnx", size: 320,
+              hint: "How far away is each pixel?", about: "Estimates the distance of every pixel from a single camera image. Warm colours are near, cool colours are far." },
+  classify: { label: "Classification", model: "yolo26n-cls", file: "yolo26n-cls.onnx", size: 224,
+              hint: "One label for the whole image (ImageNet).", about: "Gives one label for the whole picture, chosen from the 1000 ImageNet classes, with the five most likely answers." },
+  pose:     { label: "Pose estimation", model: "yolo26n-pose", file: "yolo26n-pose.onnx", size: 320,
+              hint: "17 body keypoints per person.", about: "Finds people and 17 body keypoints each (eyes, shoulders, elbows, wrists, hips, knees, ankles) and connects them to a skeleton." },
+  obb:      { label: "Oriented boxes (OBB)", model: "yolo26n-obb", file: "yolo26n-obb.onnx", size: 320,
+              hint: "Rotated boxes, trained on aerial images.", about: "Draws rotated boxes that fit tilted objects. The model is trained on aerial images (DOTA: planes, ships, vehicles …). Point the camera at a top-down photo of a parking lot or harbour, or test with an image." },
+};
+const CITYSCAPES = [[128,64,128],[244,35,232],[70,70,70],[102,102,156],[190,153,153],[153,153,153],[250,170,30],[220,220,0],[107,142,35],[152,251,152],[70,130,180],[220,20,60],[255,0,0],[0,0,142],[0,0,70],[0,60,100],[0,80,100],[0,0,230],[119,11,32]];
+const SKELETON = [[15,13],[13,11],[16,14],[14,12],[11,12],[5,11],[6,12],[5,6],[5,7],[6,8],[7,9],[8,10],[1,2],[0,1],[0,2],[1,3],[2,4],[3,5],[4,6]];
+const KPT_NAMES = ["nose","left eye","right eye","left ear","right ear","left shoulder","right shoulder","left elbow","right elbow","left wrist","right wrist","left hip","right hip","left knee","right knee","left ankle","right ankle"];
+let META = null, task = "detect", every = 2, frameNo = 0, busy = false;
+const sessions = {};             // key "task|backend" -> session
+let result = null, lastInf = 0, fpsVideo = 0, lastFrameT = 0, backendName = "WASM";
+let source = null;               // video element or image
+const view = $("view"), ctx = view.getContext("2d");
+const pre = document.createElement("canvas"), pctx = pre.getContext("2d", { willReadFrequently: true });
+const video = $("video");
+const color = (i) => `hsl(${(i * 47) % 360} 85% 62%)`;
+
+ort.env.wasm.wasmPaths = new URL("../shared/ort/", location.href).href;
+ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 2) : 1;
+
+function overlay(main, sub = "", { spin = false, err = false } = {}) {
+  $("overlay").hidden = !main; if (!main) return;
+  $("ovMain").textContent = main; $("ovSub").textContent = sub; $("ovSpin").hidden = !spin;
+  $("overlay").classList.toggle("err", err);
+}
+function setChip(id, label, val, cls = "") { $(id).innerHTML = `${label} <b>${val}</b>`; $(id).className = "chip " + cls; }
+
+// ===========================================================================
+// Models: loaded only when a task is first selected
+// ===========================================================================
+async function getSession(t) {
+  const useGpu = $("gpu").checked && "gpu" in navigator;
+  const key = `${t}|${useGpu ? "gpu" : "wasm"}`;
+  if (sessions[key]) { backendName = sessions[key]._backend; return sessions[key]; }
+  $("loading").hidden = false; $("loadingTxt").textContent = `Loading model ${TASKS[t].model}…`;
+  try {
+    let s = null, b = "WASM";
+    if (useGpu) {
+      try { s = await ort.InferenceSession.create(`models/${TASKS[t].file}`, { executionProviders: ["webgpu"] }); b = "WebGPU"; }
+      catch (e) { console.warn("WebGPU failed, falling back to WASM", e); s = null; b = "WASM (GPU fallback)"; }
+    }
+    if (!s) s = await ort.InferenceSession.create(`models/${TASKS[t].file}`, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+    s._backend = b === "WASM" ? `WASM · ${ort.env.wasm.numThreads} threads` : b;
+    sessions[key] = s; backendName = s._backend;
+    return s;
+  } catch (e) {
+    console.error(e);
+    overlay("Model failed to load", `${TASKS[t].file} could not be loaded. Check your internet connection and reload.`, { err: true });
+    throw e;
+  } finally {
+    $("loading").hidden = true; renderModels();
+  }
+}
+function renderModels() {
+  $("models").innerHTML = Object.entries(TASKS).map(([k, v]) => {
+    const loaded = Object.keys(sessions).some((s) => s.startsWith(k + "|"));
+    return `<div><span>${v.model}</span><i class="${k === task ? "cur" : loaded ? "on" : ""}">${k === task ? "active" : loaded ? "loaded" : "not loaded"}</i></div>`;
+  }).join("");
+}
+
+// ===========================================================================
+// Pre-processing
+// ===========================================================================
+function sourceSize() {
+  if (!source) return null;
+  if (source.tagName === "VIDEO") return source.videoWidth ? [source.videoWidth, source.videoHeight] : null;
+  return [source.naturalWidth, source.naturalHeight];
+}
+function letterbox(S, w, h) {
+  const s = Math.min(S / w, S / h), nw = Math.round(w * s), nh = Math.round(h * s), px = (S - nw) / 2, py = (S - nh) / 2;
+  pre.width = pre.height = S; pctx.fillStyle = "rgb(114,114,114)"; pctx.fillRect(0, 0, S, S);
+  pctx.drawImage(source, 0, 0, w, h, px, py, nw, nh);
+  return { s, px, py };
+}
+function centerCrop(S, w, h) {            // classification: resize short side, crop the centre
+  const s = S / Math.min(w, h), cw = S / s, sx = (w - cw) / 2, sy = (h - cw) / 2;
+  pre.width = pre.height = S; pctx.drawImage(source, sx, sy, cw, cw, 0, 0, S, S);
+  return { s: 1, px: 0, py: 0 };
+}
+function toTensor(S) {
+  const d = pctx.getImageData(0, 0, S, S).data, n = S * S, x = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) { x[i] = d[i * 4] / 255; x[n + i] = d[i * 4 + 1] / 255; x[2 * n + i] = d[i * 4 + 2] / 255; }
+  return new ort.Tensor("float32", x, [1, 3, S, S]);
+}
+function iou(a, b) {
+  const x1 = Math.max(a.x1, b.x1), y1 = Math.max(a.y1, b.y1), x2 = Math.min(a.x2, b.x2), y2 = Math.min(a.y2, b.y2);
+  const i = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  return i / ((a.x2 - a.x1) * (a.y2 - a.y1) + (b.x2 - b.x1) * (b.y2 - b.y1) - i + 1e-6);
+}
+function nms(c, thr = 0.5, max = 50) { c.sort((a, b) => b.score - a.score); const k = []; for (const d of c) { if (k.length >= max) break; if (k.every((q) => q.cls !== d.cls || iou(q, d) < thr)) k.push(d); } return k; }
+// letterbox (model) coordinates -> source image coordinates
+const unX = (x, L) => (x - L.px) / L.s, unY = (y, L) => (y - L.py) / L.s;
+
+// ===========================================================================
+// Inference + decoding for each task
+// ===========================================================================
+async function infer() {
+  const size = sourceSize(); if (!size) return;
+  const [w, h] = size, T = TASKS[task], S = T.size, conf = $("conf").value / 100;
+  const sess = await getSession(task);
+  const L = task === "classify" ? centerCrop(S, w, h) : letterbox(S, w, h);
+  const t0 = performance.now();
+  const out = await sess.run({ [sess.inputNames[0]]: toTensor(S) });
+  lastInf = performance.now() - t0;
+  const o = out[sess.outputNames[0]], names = META[task].names;
+  const r = { task, w, h, L };
+
+  if (task === "detect") {                        // [1,300,6] x1 y1 x2 y2 score class (already final)
+    const d = o.data; r.boxes = [];
+    for (let i = 0; i < 300; i++) {
+      const sc = d[i * 6 + 4]; if (sc < conf) continue;
+      r.boxes.push({ x1: unX(d[i * 6], L), y1: unY(d[i * 6 + 1], L), x2: unX(d[i * 6 + 2], L), y2: unY(d[i * 6 + 3], L), score: sc, cls: d[i * 6 + 5] | 0 });
+    }
+  } else if (task === "segment") {               // [1,116,2100] cx cy w h, 80 scores, 32 coeffs + protos [1,32,80,80]
+    const d = o.data, N = 2100, P = out[sess.outputNames[1]].data, cand = [];
+    for (let j = 0; j < N; j++) {
+      let best = 0, cls = 0; for (let c = 0; c < 80; c++) { const v = d[(4 + c) * N + j]; if (v > best) { best = v; cls = c; } }
+      if (best < conf) continue;
+      const cx = d[j], cy = d[N + j], bw = d[2 * N + j], bh = d[3 * N + j];
+      cand.push({ x1: cx - bw / 2, y1: cy - bh / 2, x2: cx + bw / 2, y2: cy + bh / 2, score: best, cls, j });
+    }
+    r.boxes = nms(cand, 0.5, 20).map((b) => {
+      const m = new Float32Array(6400);           // 80x80 mask = sigmoid(coeffs · protos), cropped to the box
+      for (let k = 0; k < 32; k++) { const ck = d[(84 + k) * N + b.j]; for (let p = 0; p < 6400; p++) m[p] += ck * P[k * 6400 + p]; }
+      const bx1 = b.x1 / 4, by1 = b.y1 / 4, bx2 = b.x2 / 4, by2 = b.y2 / 4;
+      for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) { const p = y * 80 + x; m[p] = (x < bx1 || x > bx2 || y < by1 || y > by2) ? 0 : 1 / (1 + Math.exp(-m[p])); }
+      return { ...b, mask: m, x1: unX(b.x1, L), y1: unY(b.y1, L), x2: unX(b.x2, L), y2: unY(b.y2, L) };
+    });
+  } else if (task === "semantic") {              // [1,320,320] class id per pixel
+    r.map = o.data; r.S = S;
+  } else if (task === "depth") {                 // [1,1,320,320] distance per pixel
+    r.depth = o.data; r.S = S;
+    const sorted = Float32Array.from(r.depth).sort();
+    r.lo = sorted[Math.floor(sorted.length * 0.02)]; r.hi = sorted[Math.floor(sorted.length * 0.98)];
+  } else if (task === "classify") {              // [1,1000] probabilities
+    const p = o.data; r.top = Array.from(p.keys()).sort((a, b) => p[b] - p[a]).slice(0, 5).map((i) => ({ name: names[i], p: p[i] }));
+  } else if (task === "pose") {                  // [1,56,2100] cx cy w h score, 17 x (x, y, conf)
+    const d = o.data, N = 2100, cand = [];
+    for (let j = 0; j < N; j++) {
+      const sc = d[4 * N + j]; if (sc < conf) continue;
+      const cx = d[j], cy = d[N + j], bw = d[2 * N + j], bh = d[3 * N + j], k = [];
+      for (let q = 0; q < 17; q++) k.push([d[(5 + q * 3) * N + j], d[(6 + q * 3) * N + j], d[(7 + q * 3) * N + j]]);
+      cand.push({ x1: cx - bw / 2, y1: cy - bh / 2, x2: cx + bw / 2, y2: cy + bh / 2, score: sc, cls: 0, k });
+    }
+    r.people = nms(cand, 0.5, 10).map((b) => ({ ...b, x1: unX(b.x1, L), y1: unY(b.y1, L), x2: unX(b.x2, L), y2: unY(b.y2, L), k: b.k.map(([x, y, c]) => [unX(x, L), unY(y, L), c]) }));
+  } else if (task === "obb") {                   // [1,20,2100] cx cy w h, 15 scores, angle (rad)
+    const d = o.data, N = 2100, cand = [];
+    for (let j = 0; j < N; j++) {
+      let best = 0, cls = 0; for (let c = 0; c < 15; c++) { const v = d[(4 + c) * N + j]; if (v > best) { best = v; cls = c; } }
+      if (best < conf) continue;
+      const cx = d[j], cy = d[N + j], bw = d[2 * N + j], bh = d[3 * N + j], a = d[19 * N + j];
+      const R = Math.max(bw, bh) / 2;
+      cand.push({ x1: cx - R, y1: cy - R, x2: cx + R, y2: cy + R, cx, cy, bw, bh, a, score: best, cls });
+    }
+    r.boxes = nms(cand, 0.4, 50).map((b) => ({ ...b, cx: unX(b.cx, L), cy: unY(b.cy, L), bw: b.bw / L.s, bh: b.bh / L.s }));
+  }
+  result = r;
+  updateInsight();
+}
+
+// ===========================================================================
+// Drawing
+// ===========================================================================
+const tmp = document.createElement("canvas"), tctx = tmp.getContext("2d");
+function turbo(t) {          // approx. turbo colormap 0..1 -> rgb
+  t = Math.min(1, Math.max(0, t));
+  const r = 34.61 + t * (1172.33 - t * (10793.56 - t * (33300.12 - t * (38394.49 - t * 14825.05))));
+  const g = 23.31 + t * (557.33 + t * (1225.33 - t * (3574.96 - t * (1073.77 + t * 707.56))));
+  const b = 27.2 + t * (3211.1 - t * (15327.97 - t * (27814 - t * (22569.18 - t * 6838.66))));
+  return [Math.max(0, Math.min(255, r)), Math.max(0, Math.min(255, g)), Math.max(0, Math.min(255, b))];
+}
+function drawLabel(x, y, text, col, fs) {
+  ctx.font = `600 ${fs}px Inter, sans-serif`;
+  const tw = ctx.measureText(text).width + fs * 0.7, th = fs * 1.4, ty = Math.max(0, y - th);
+  ctx.fillStyle = col; ctx.fillRect(x, ty, tw, th);
+  ctx.fillStyle = "#0b0e14"; ctx.fillText(text, x + fs * 0.35, ty + fs * 1.05);
+}
+// paint a model-space (S x S) RGBA image onto the source image using the letterbox transform
+function paintModelSpace(imgData, S, L, alpha) {
+  tmp.width = imgData.width; tmp.height = imgData.height; tctx.putImageData(imgData, 0, 0);
+  const k = S / imgData.width;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(tmp, -L.px / L.s, -L.py / L.s, (imgData.width * k) / L.s, (imgData.height * k) / L.s);
+  ctx.restore();
+}
+
+function draw() {
+  const size = sourceSize(); if (!size) return;
+  const [w, h] = size, k = Math.max(1, 1280 / w), cw = Math.round(w * k), ch = Math.round(h * k);
+  if (view.width !== cw || view.height !== ch) { view.width = cw; view.height = ch; }
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.drawImage(source, 0, 0, w, h);
+  const r = result, fs = 15 / k, lw = 3 / k, names = META ? META[task].names : [];
+  if (r && r.task === task && r.w === w) {
+    if (task === "detect") {
+      for (const b of r.boxes) { ctx.strokeStyle = color(b.cls); ctx.lineWidth = lw; ctx.strokeRect(b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1); drawLabel(b.x1, b.y1, `${names[b.cls]} ${Math.round(b.score * 100)}%`, color(b.cls), fs); }
+    } else if (task === "segment") {
+      const im = new ImageData(80, 80);
+      r.boxes.forEach((b) => { const c = color(b.cls).match(/\d+/g); const [rr, gg, bb] = hslToRgb(+c[0], +c[1], +c[2]);
+        for (let p = 0; p < 6400; p++) if (b.mask[p] > 0.5) { im.data[p * 4] = rr; im.data[p * 4 + 1] = gg; im.data[p * 4 + 2] = bb; im.data[p * 4 + 3] = 255; } });
+      paintModelSpace(im, 320, r.L, 0.5);
+      for (const b of r.boxes) { ctx.strokeStyle = color(b.cls); ctx.lineWidth = lw * 0.7; ctx.strokeRect(b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1); drawLabel(b.x1, b.y1, `${names[b.cls]} ${Math.round(b.score * 100)}%`, color(b.cls), fs); }
+    } else if (task === "semantic") {
+      const S = r.S, im = new ImageData(S, S);
+      for (let p = 0; p < S * S; p++) { const c = CITYSCAPES[r.map[p] | 0] || [0, 0, 0]; im.data[p * 4] = c[0]; im.data[p * 4 + 1] = c[1]; im.data[p * 4 + 2] = c[2]; im.data[p * 4 + 3] = 255; }
+      paintModelSpace(im, S, r.L, 0.6);
+    } else if (task === "depth") {
+      const S = r.S, im = new ImageData(S, S), lo = r.lo, hi = r.hi;
+      for (let p = 0; p < S * S; p++) { const [R, G, B] = turbo(1 - (r.depth[p] - lo) / (hi - lo + 1e-6)); im.data[p * 4] = R; im.data[p * 4 + 1] = G; im.data[p * 4 + 2] = B; im.data[p * 4 + 3] = 255; }
+      paintModelSpace(im, S, r.L, 0.85);
+    } else if (task === "classify") {
+      const t = r.top[0]; ctx.font = `700 ${fs * 2}px Sora, sans-serif`;
+      const txt = `${t.name}  ${Math.round(t.p * 100)}%`, tw = ctx.measureText(txt).width + fs * 2;
+      ctx.fillStyle = "rgba(11,14,20,.78)"; ctx.fillRect(w / 2 - tw / 2, h - fs * 5, tw, fs * 3.2);
+      ctx.fillStyle = "#ffc35c"; ctx.fillText(txt, w / 2 - tw / 2 + fs, h - fs * 2.8);
+    } else if (task === "pose") {
+      for (const p of r.people) {
+        ctx.strokeStyle = "rgba(124,156,255,.6)"; ctx.lineWidth = lw * 0.6; ctx.strokeRect(p.x1, p.y1, p.x2 - p.x1, p.y2 - p.y1);
+        ctx.lineCap = "round";
+        SKELETON.forEach(([a, b], i) => { const A = p.k[a], B = p.k[b]; if (A[2] < 0.5 || B[2] < 0.5) return;
+          ctx.strokeStyle = i < 4 ? "#38d6b4" : i < 11 ? "#ffc35c" : "#ff6b7a"; ctx.lineWidth = lw * 1.4; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); });
+        p.k.forEach(([x, y, c]) => { if (c < 0.5) return; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, lw * 1.6, 0, 7); ctx.fill(); });
+        drawLabel(p.x1, p.y1, `person ${Math.round(p.score * 100)}%`, "#7c9cff", fs);
+      }
+    } else if (task === "obb") {
+      for (const b of r.boxes) {
+        const c = Math.cos(b.a), s = Math.sin(b.a), hw = b.bw / 2, hh = b.bh / 2;
+        const pts = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => [b.cx + x * c - y * s, b.cy + x * s + y * c]);
+        ctx.strokeStyle = color(b.cls); ctx.lineWidth = lw; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(...q) : ctx.moveTo(...q))); ctx.closePath(); ctx.stroke();
+        drawLabel(pts[0][0], pts[0][1], `${names[b.cls]} ${Math.round(b.score * 100)}%`, color(b.cls), fs);
+      }
+    }
+  }
+  // HUD
+  ctx.font = `600 ${fs}px "JetBrains Mono", monospace`;
+  const hud = `${source === video ? "● LIVE" : "▣ IMAGE"}   ${TASKS[task].model}   ${backendName}   ${fpsVideo.toFixed(0)} fps`;
+  const tw = ctx.measureText(hud).width + 20 / k;
+  ctx.fillStyle = "rgba(11,14,20,.75)"; ctx.fillRect(10 / k, 10 / k, tw, fs * 1.9);
+  ctx.fillStyle = source === video ? "#ff6b7a" : "#ffc35c"; ctx.fillText(hud[0], 20 / k, 10 / k + fs * 1.3);
+  ctx.fillStyle = "#e8edf5"; ctx.fillText(hud.slice(1), 20 / k, 10 / k + fs * 1.3);
+  ctx.font = `500 ${fs * 0.8}px "JetBrains Mono", monospace`; ctx.fillStyle = "rgba(232,237,245,.75)";
+  ctx.fillText("YOLO26 Multi-Task Lab · Moritz Binder", 10 / k, h - 10 / k);
+}
+function hslToRgb(h, s, l) { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l); const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [255 * f(0), 255 * f(8), 255 * f(4)]; }
+
+// ===========================================================================
+// Insight panel (right column)
+// ===========================================================================
+function bars(rows, colorFn) {
+  if (!rows.length) return `<div class="empty">Nothing found in this frame.</div>`;
+  const max = Math.max(...rows.map((r) => r.v));
+  return `<div class="bars">${rows.map((r, i) => `<div class="bar"><span class="n">${r.n}</span><span class="p">${r.txt}</span><span class="t"><i style="width:${(r.v / max) * 100}%;background:${colorFn(r, i)}"></i></span></div>`).join("")}</div>`;
+}
+function counts(list, names) { const c = {}; list.forEach((b) => (c[b.cls] = (c[b.cls] || 0) + 1)); return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ n: names[k], v, txt: String(v), cls: +k })); }
+function updateInsight() {
+  const r = result; if (!r || !META) return;
+  const names = META[task].names;
+  if (task === "detect" || task === "segment" || task === "obb") {
+    $("insTitle").textContent = "Objects in view"; $("insight").innerHTML = bars(counts(r.boxes, names), (x) => color(x.cls));
+  } else if (task === "classify") {
+    $("insTitle").textContent = "Top-5 classes"; $("insight").innerHTML = bars(r.top.map((t) => ({ n: t.name, v: t.p, txt: (t.p * 100).toFixed(1) + " %" })), (_, i) => (i ? "#7c9cff" : "#ffc35c"));
+  } else if (task === "semantic") {
+    const c = new Array(19).fill(0); for (const v of r.map) c[v | 0]++;
+    const rows = c.map((v, i) => ({ n: names[i], v, txt: ((v / r.map.length) * 100).toFixed(1) + " %", i })).filter((x) => x.v / r.map.length > 0.005).sort((a, b) => b.v - a.v).slice(0, 8);
+    $("insTitle").textContent = "Image area by class"; $("insight").innerHTML = bars(rows, (x) => `rgb(${CITYSCAPES[x.i]})`);
+  } else if (task === "depth") {
+    const lo = r.lo ?? 0, hi = r.hi ?? 1;
+    $("insTitle").textContent = "Depth map";
+    $("insight").innerHTML = `<div class="legend"></div><div class="legend-row"><span>far</span><span>near</span></div>
+      <div class="bars" style="margin-top:14px"><div class="bar"><span class="n">Nearest area</span><span class="p">${lo.toFixed(2)}</span></div><div class="bar"><span class="n">Farthest area</span><span class="p">${hi.toFixed(2)}</span></div></div>
+      <p class="hint" style="margin:10px 0 0">Values are the model's relative depth units (2nd / 98th percentile of this frame).</p>`;
+  } else if (task === "pose") {
+    $("insTitle").textContent = "People & keypoints";
+    const p = r.people[0];
+    $("insight").innerHTML = r.people.length ? `<div class="bars"><div class="bar"><span class="n">People</span><span class="p">${r.people.length}</span></div>
+      <div class="bar"><span class="n">Visible keypoints (person 1)</span><span class="p">${p.k.filter((q) => q[2] > 0.5).length} / 17</span></div>
+      <div class="bar"><span class="n">Hands raised</span><span class="p">${[9, 10].filter((i) => p.k[i][2] > 0.5 && p.k[i][1] < p.k[i - 4][1]).length} / 2</span></div></div>
+      <p class="hint" style="margin:10px 0 0">Wave or raise a hand – the “hands raised” counter compares wrist and shoulder height.</p>` : `<div class="empty">No person in view.</div>`;
+  }
+}
+
+// ===========================================================================
+// Sources, controls, main loop
+// ===========================================================================
+async function startWebcam() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { overlay("Unsupported browser", "This browser cannot access a camera. Use a current Chrome, Edge, Firefox or Safari.", { err: true }); return; }
+  overlay("Starting webcam…", "Allow camera access when the browser asks.", { spin: true });
+  try {
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    await video.play(); source = video; overlay(null);
+    $("title").innerHTML = `Live webcam <small>switch tasks while the camera keeps running</small>`;
+  } catch (e) {
+    if (e.name === "NotAllowedError" || e.name === "SecurityError") overlay("Camera access denied", "Allow the camera via the icon in the address bar and reload – or test with an image.", { err: true });
+    else if (e.name === "NotFoundError" || e.name === "OverconstrainedError") overlay("No camera found", "Connect a webcam or test with an image instead.", { err: true });
+    else overlay("Camera error", e.message, { err: true });
+  }
+}
+async function useImage(f) {
+  const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();
+  if (video.srcObject) { video.srcObject.getTracks().forEach((t) => t.stop()); video.srcObject = null; }
+  source = img; overlay(null); result = null;
+  $("title").innerHTML = `Image <small>${f.name}</small>`;
+  await runOnce();
+}
+let again = false;
+async function runOnce() {
+  if (busy) { again = true; return; }               // a newer image/task arrived: run once more afterwards
+  busy = true;
+  try { do { again = false; await infer(); } while (again && source && source.tagName === "IMG"); } catch (e) { console.error(e); }
+  busy = false;
+}
+function setTask(t) {
+  task = t; result = null;
+  $("taskHint").textContent = TASKS[t].hint; $("about").innerHTML = `<p>${TASKS[t].about}</p>`;
+  $("tTask").textContent = TASKS[t].label; setChip("chipTask", "Task", TASKS[t].model);
+  $("insight").innerHTML = `<div class="empty">Loading…</div>`;
+  renderModels();
+  if (source && source.tagName === "IMG") runOnce();
+}
+$("task").onchange = (e) => setTask(e.target.value);
+$("gpu").onchange = () => { result = null; if (source && source.tagName === "IMG") runOnce(); };
+document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { every = +b.dataset.n; document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); });
+$("conf").oninput = () => { $("oConf").textContent = $("conf").value + " %"; if (source && source.tagName === "IMG") runOnce(); };
+$("camBtn").onclick = startWebcam;
+$("file").onchange = (e) => e.target.files[0] && useImage(e.target.files[0]);
+$("snap").onclick = () => view.toBlob((b) => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `yolo26_${task}_${Date.now()}.png`; a.click(); });
+
+function loop(now) {
+  if (source === video && video.readyState >= 2) {
+    if (lastFrameT) fpsVideo = fpsVideo * 0.9 + (1000 / (now - lastFrameT)) * 0.1; lastFrameT = now;
+    if (++frameNo % every === 0 && !busy) runOnce();     // live video: simply skip frames while busy
+  }
+  try { draw(); } catch (e) { /* not ready */ }
+  $("tBackend").textContent = backendName.split(" (")[0];
+  $("tFps").innerHTML = `${source === video ? fpsVideo.toFixed(0) : "–"}<small>video</small>`;
+  $("tInf").innerHTML = `${lastInf ? lastInf.toFixed(0) : "–"}<small>ms</small>`;
+  setChip("chipBackend", "Backend", backendName, backendName.includes("fallback") ? "bad" : "ok");
+  setChip("chipFps", "FPS", source === video ? fpsVideo.toFixed(0) : "–");
+  requestAnimationFrame(loop);
+}
+
+(async () => {
+  if (typeof WebAssembly !== "object") { overlay("Unsupported browser", "WebAssembly is not available. Use a current Chrome, Edge, Firefox or Safari.", { err: true }); return; }
+  try { META = await (await fetch("models/models.json")).json(); }
+  catch (e) { overlay("Model list not found", "Reload the page.", { err: true }); return; }
+  setTask("detect");
+  requestAnimationFrame(loop);
+  await startWebcam();
+})();
+</script>
+</body>
+</html>

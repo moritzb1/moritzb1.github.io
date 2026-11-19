@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teachable Machine Live Classifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Unit 3.1 - Teachable Machine Real-Time Object Classifier (Moritz Binder) */
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #2a313c; --text: #e8edf3; --muted: #8b96a5;
+    --accent: #4f8cff; --good: #3ccf8e; --warn: #f5b74a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 15px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; display: grid; gap: 18px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .bar input { flex: 1 1 360px; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; font: inherit; font-family: "JetBrains Mono", monospace; font-size: 13px; }
+  button, label.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 16px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+  .stage { position: relative; aspect-ratio: 4 / 3; background: #000; border-radius: 10px; overflow: hidden; display: grid; place-items: center; }
+  .stage canvas, .stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .stage .placeholder { color: var(--muted); text-align: center; padding: 20px; }
+  .badge { position: absolute; left: 12px; top: 12px; background: rgba(0,0,0,0.65); border-radius: 999px; padding: 6px 14px;
+    font-weight: 700; font-size: 18px; border: 2px solid var(--good); }
+  .badge.empty { border-color: var(--muted); color: var(--muted); }
+  .badge[hidden] { display: none; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; }
+  .top { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .topconf { color: var(--muted); margin: 4px 0 16px; font-family: "JetBrains Mono", monospace; }
+  .classes { display: grid; gap: 10px; }
+  .cls { display: grid; gap: 4px; }
+  .cls .row { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+  .cls .row span:last-child { font-family: "JetBrains Mono", monospace; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meter { height: 12px; border-radius: 6px; background: #0b0e13; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; border-radius: 6px; transition: width 0.12s; }
+  .status { color: var(--muted); font-size: 13px; min-height: 1.2em; }
+  .status.err { color: #ff8686; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 14px; font-family: "JetBrains Mono", monospace; }
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Teachable Machine Live Classifier</h1>
+    <p>Unit 3.1 · loads a model trained in Google Teachable Machine and classifies the webcam image in real time.</p>
+  </header>
+
+  <div class="bar">
+    <input id="url" type="url" placeholder="Paste your model link, e.g. https://teachablemachine.withgoogle.com/models/XXXXXXXX/" aria-label="Teachable Machine model URL">
+    <button id="load" class="primary" type="button">Load model</button>
+  </div>
+  <div class="status" id="status">Paste the link from Teachable Machine → Export Model → Upload (shareable link).</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="stage" id="stage">
+        <div class="placeholder" id="placeholder">Load a model, then start the webcam<br>or test with an image.</div>
+        <span class="badge" id="badge" hidden></span>
+      </div>
+      <div class="bar" style="margin-top:12px">
+        <button id="cam" type="button" disabled>Start webcam</button>
+        <label class="btn" id="imgBtn" for="file" aria-disabled="true">Test with image</label>
+        <input id="file" type="file" accept="image/*">
+      </div>
+      <div class="stats"><span id="fps">— fps</span><span id="modelInfo">no model</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Prediction</div>
+      <div class="top" id="top">—</div>
+      <div class="topconf" id="topconf">waiting for a model</div>
+      <div class="classes" id="classes"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.3/dist/teachablemachine-image.min.js"></script>
+<script>
+const COLORS = ["#4f8cff", "#3ccf8e", "#f5b74a", "#e85d75", "#a77bff", "#3cc8d8", "#ff8c42", "#9aa5b1"];
+const EMPTY_WORDS = ["empty", "blank", "nothing", "none", "background", "leer"];
+const $ = (id) => document.getElementById(id);
+let model = null, webcam = null, running = false, labels = [], fps = 0, last = performance.now();
+
+function setStatus(text, err = false) { $("status").textContent = text; $("status").className = "status" + (err ? " err" : ""); }
+function normalize(url) {
+  url = url.trim();
+  if (!url) return "";
+  return url.endsWith("/") ? url : url + "/";
+}
+
+function buildBars() {
+  $("classes").innerHTML = "";
+  labels.forEach((name, i) => {
+    const el = document.createElement("div");
+    el.className = "cls";
+    el.innerHTML = `<div class="row"><span>${name}</span><span id="p${i}">0%</span></div><div class="meter"><i id="m${i}" style="background:${COLORS[i % COLORS.length]}"></i></div>`;
+    $("classes").appendChild(el);
+  });
+}
+
+function showPrediction(pred) {
+  let best = pred[0];
+  pred.forEach((p, i) => {
+    const pct = Math.round(p.probability * 100);
+    $("p" + i).textContent = pct + "%";
+    $("m" + i).style.width = pct + "%";
+    if (p.probability > best.probability) best = p;
+  });
+  const isEmpty = EMPTY_WORDS.some((w) => best.className.toLowerCase().includes(w));
+  $("top").textContent = best.className;
+  $("topconf").textContent = `${(best.probability * 100).toFixed(1)} % confidence`;
+  const badge = $("badge");
+  badge.hidden = false;
+  badge.textContent = isEmpty ? "No object" : best.className;
+  badge.className = "badge" + (isEmpty ? " empty" : "");
+}
+
+async function loadModel() {
+  const base = normalize($("url").value);
+  if (!base) { setStatus("Please paste the link of your model or a local folder like my-model/.", true); return; }
+  setStatus("Loading model…");
+  $("load").disabled = true;
+  try {
+    model = await tmImage.load(base + "model.json", base + "metadata.json");
+    labels = model.getClassLabels();
+    buildBars();
+    $("cam").disabled = false;
+    $("imgBtn").removeAttribute("aria-disabled");
+    $("modelInfo").textContent = `${labels.length} classes`;
+    setStatus(`Model loaded: ${labels.join(", ")}. Start the webcam.`);
+  } catch (e) {
+    console.error(e);
+    setStatus("Could not load the model. Check the link (it must end with /models/…/) or the folder name.", true);
+  } finally {
+    $("load").disabled = false;
+  }
+}
+
+async function startWebcam() {
+  if (!model) return;
+  if (running) { stopWebcam(); return; }
+  setStatus("Starting webcam… allow camera access if the browser asks.");
+  try {
+    webcam = new tmImage.Webcam(480, 360, true);   // width, height, flip (mirror)
+    await webcam.setup();
+    await webcam.play();
+  } catch (e) {
+    console.error(e);
+    setStatus("No webcam access. Allow the camera in the browser (icon in the address bar) and try again.", true);
+    return;
+  }
+  const stage = $("stage");
+  stage.querySelectorAll("canvas, img").forEach((n) => n.remove());
+  $("placeholder").hidden = true;
+  stage.insertBefore(webcam.canvas, $("badge"));
+  running = true;
+  $("cam").textContent = "Stop webcam";
+  setStatus("Running. Hold one of your objects in front of the camera.");
+  requestAnimationFrame(loop);
+}
+
+function stopWebcam() {
+  running = false;
+  if (webcam) webcam.stop();
+  $("cam").textContent = "Start webcam";
+  setStatus("Webcam stopped.");
+}
+
+async function loop(now) {
+  if (!running) return;
+  webcam.update();
+  const pred = await model.predict(webcam.canvas);
+  showPrediction(pred);
+  const dt = now - last; last = now;
+  fps = fps * 0.9 + (1000 / Math.max(dt, 1)) * 0.1;
+  $("fps").textContent = fps.toFixed(0) + " fps";
+  requestAnimationFrame(loop);
+}
+
+async function classifyImage(file) {
+  if (!model || !file) return;
+  if (running) stopWebcam();
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  await img.decode();
+  const stage = $("stage");
+  stage.querySelectorAll("canvas, img").forEach((n) => n.remove());
+  $("placeholder").hidden = true;
+  stage.insertBefore(img, $("badge"));
+  showPrediction(await model.predict(img));
+  setStatus(`Classified image: ${file.name}`);
+}
+
+$("load").addEventListener("click", loadModel);
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") loadModel(); });
+$("cam").addEventListener("click", startWebcam);
+$("file").addEventListener("change", (e) => classifyImage(e.target.files[0]));
+
+// Always start with Moritz' own model in the folder my-model/ (a different link can be pasted above)
+try { localStorage.removeItem("tm-url"); } catch (e) {}
+if (location.search) history.replaceState(null, "", location.pathname);
+$("url").value = "my-model/";
+loadModel();
+</script>
+</body>
+</html>
