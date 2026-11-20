@@ -1,2 +1,2 @@
 Extra Credit #4-8: my own Gemini skill "campaign-check" – reviews a marketing campaign (scorecard, risks, before/after fixes, KPIs)
-https://moritzb1.github.io/apps/campaign-check/SKILL.md
+https://github.com/moritzb1/moritzb1.github.io/blob/main/apps/campaign-check/SKILL.md
