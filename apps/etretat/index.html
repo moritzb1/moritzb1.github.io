@@ -99,15 +99,16 @@ body.touch #prompt{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
 <div id="tools">
   <button class="tool glass on" id="autoBtn" aria-label="Auto ride"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16c0-5 4-9 9-9h3"/><path d="M14 4l3 3-3 3"/><path d="M20 8c0 5-4 9-9 9H8"/><path d="M10 20l-3-3 3-3"/></svg><span class="tip">Auto ride along the path (T)</span></button>
   <button class="tool glass" id="tourBtn" aria-label="Camera tour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="M16 11l5-3v8l-5-3"/><circle cx="7.5" cy="12" r="1.6"/></svg><span class="tip">Panorama camera tour (C)</span></button>
-  <button class="tool glass" id="swapBtn" aria-label="Boat or horse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M12 4l6 10h-6"/><path d="M12 6l-5 8h5"/><path d="M3 17h18l-2.5 3.5h-13z"/></svg><span class="tip">Board boat / go ashore (E)</span></button>
+  <button class="tool glass" id="swapBtn" aria-label="Boat or horse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M12 4l6 10h-6"/><path d="M12 6l-5 8h5"/><path d="M3 17h18l-2.5 3.5h-13z"/></svg><span class="tip">Switch horse / boat (E)</span></button>
   <button class="tool glass" id="helpBtn" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 17h.01"/></svg><span class="tip">About this scene (H)</span></button>
 </div>
 
 <div id="legend" class="glass">
-  <span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>ride / sail</span>
+  <span class="keys"><kbd>W</kbd><kbd>S</kbd></span><span>faster / slower</span>
+  <span class="keys"><kbd>A</kbd><kbd>D</kbd></span><span>steer left / right</span>
   <span class="keys"><kbd>Shift</kbd></span><span>gallop / full sail</span>
   <span class="keys"><kbd>Space</kbd></span><span>jump</span>
-  <span class="keys"><kbd>E</kbd></span><span>boat at the jetty</span>
+  <span class="keys"><kbd>E</kbd></span><span>switch horse / boat</span>
   <span class="keys"><kbd>Drag</kbd><kbd>Wheel</kbd></span><span>look / zoom</span>
 </div>
 
@@ -912,6 +913,7 @@ function setAuto(v){ st.auto=v; $('autoBtn').classList.toggle('on',v);
 function toggleTour(){ st.tour=!st.tour; $('tourBtn').classList.toggle('on',st.tour); if(st.tour){ st.tourT=0; if(!st.auto) setAuto(true); } flash(st.tour?'Camera tour':'Camera follows rider'); }
 function toggleHelp(){ $('help').hidden=!$('help').hidden; }
 $('autoBtn').onclick=()=>setAuto(!st.auto); $('tourBtn').onclick=toggleTour; $('swapBtn').onclick=()=>{ swapReq=true; }; $('helpBtn').onclick=toggleHelp; $('helpClose').onclick=toggleHelp;
+document.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>b.blur()));
 let flashT=0; function flash(t){ $('statusTxt').textContent=t; $('status').hidden=false; flashT=2.2; }
 
 /* ---------------- quality ---------------- */
@@ -943,8 +945,8 @@ function horseStep(dt,inF,inX,run){
     if(!h.air && obstacleHit(fx,fz,h.y)) jumpReq=true;
     if(h.spd<0.5) { h.stuck+=dt; if(h.stuck>1.2){ jumpReq=true; h.stuck=0; } } else h.stuck=0;
   } else {
-    const l=Math.hypot(inF,inX);
-    if(l>0.1){ const yaw=st.cam.yaw+Math.PI; want=yaw+Math.atan2(inX,inF); thr=Math.min(1,l); }
+    h.head-=inX*(h.air?1.0:2.1)*dt;
+    thr=inF>0.05?inF:(inF<-0.05?-0.4:0); if(inF<=0.05) run=false;
   }
   if(want!==null){ let d=want-h.head; d=Math.atan2(Math.sin(d),Math.cos(d)); h.head+=clamp(d,-2.6*dt,2.6*dt)*(h.air?0.4:1); }
   const vmax=run?11:4.6, target=thr*vmax;
@@ -959,7 +961,7 @@ function horseStep(dt,inF,inX,run){
   const g=H(h.x,h.z);
   if(h.air){ h.vy-=17*dt; h.y+=h.vy*dt; if(h.y<=g){ h.y=g; h.air=false; h.vy=0; } }
   else { h.y=mix(h.y,g,Math.min(1,dt*18)); if(h.y-g>0.6){ h.air=true; } }
-  h.phase+=dt*(h.spd<0.2?0:(h.spd>6?2.6+h.spd*0.35:1.4+h.spd*0.55));
+  const as=Math.abs(h.spd); h.phase+=dt*(as<0.2?0:(as>6?2.6+as*0.35:1.4+as*0.55));
 }
 function boatStep(dt,inF,inX,run){
   const b=st.boat; let want=null, thr=0;
@@ -968,10 +970,10 @@ function boatStep(dt,inF,inX,run){
     for(let g=0;g<40&&Math.hypot(tgt[0]-b.x,tgt[1]-b.z)<14;g++){ b.idx=(b.idx+1)%P.length; tgt=P[b.idx]; }
     want=Math.atan2(tgt[0]-b.x,tgt[1]-b.z); thr=0.85; run=true;
     if(b.idx===P.length-1 && Math.hypot(b.x-JETTY_END[0],b.z-JETTY_END[1])<20) swapReq=true;
-  } else { const l=Math.hypot(inF,inX); if(l>0.1){ want=st.cam.yaw+Math.PI+Math.atan2(inX,inF); thr=Math.min(1,l); } }
-  let turn=0;
+  } else { b.head-=inX*0.9*dt*clamp(0.35+Math.abs(b.spd)*0.1,0,1); thr=inF>0.05?inF:(inF<-0.05?-0.3:0); }
+  let turn=st.auto?0:-inX;
   if(want!==null){ let d=want-b.head; d=Math.atan2(Math.sin(d),Math.cos(d)); turn=clamp(d,-1,1); b.head+=clamp(d,-0.9*dt,0.9*dt)*clamp(0.3+b.spd*0.12,0,1); }
-  const vmax=run?12:7; b.spd+=clamp(thr*vmax-b.spd,-3*dt,2.2*dt);
+  const vmax=run?12:7; b.spd+=clamp(thr*vmax-b.spd,-3.5*dt,3.5*dt);
   if(jumpReq && b.jump<=0.001){ b.vy=4.2; b.jump=0.01; } jumpReq=false;
   const nx=b.x+Math.sin(b.head)*b.spd*dt, nz=b.z+Math.cos(b.head)*b.spd*dt;
   const wet=(x,z)=>{ for(const k of [0,3.3,-3.3]){ const px=x+Math.sin(b.head)*k,pz=z+Math.cos(b.head)*k; if(H(px,pz)>-0.55) return false;
@@ -983,12 +985,14 @@ function boatStep(dt,inF,inX,run){
   b.boom=mix(b.boom,0.35+turn*0.4,dt*1.5);
 }
 function swap(){
-  if(st.mode==='ride'){ if(Math.hypot(st.horse.x-JETTY_BASE[0],st.horse.z-JETTY_BASE[1])>10) return false;
+  if(st.mode==='ride'){
     st.mode='sail'; const b=st.boat; b.x=JETTY_END[0]; b.z=JETTY_END[1]+1; b.head=0.0; b.spd=0; b.idx=0;
-    const h=st.horse; h.x=JETTY_BASE[0]-2.5; h.z=JETTY_BASE[1]-1; h.y=H(h.x,h.z); h.spd=0; h.head=0; st.cam.dist=Math.max(st.cam.dist,16); flash('Sailing'); }
-  else { if(Math.hypot(st.boat.x-JETTY_END[0],st.boat.z-JETTY_END[1])>24) return false;
+    const h=st.horse; h.x=JETTY_BASE[0]-2.5; h.z=JETTY_BASE[1]-1; h.y=H(h.x,h.z); h.spd=0; h.head=0; st.cam.dist=Math.max(st.cam.dist,16); flash('Sailing: W/S speed, A/D steer, E back to the horse'); }
+  else {
     st.mode='ride'; const h=st.horse; h.x=JETTY_BASE[0]; h.z=JETTY_BASE[1]; h.y=H(h.x,h.z); h.spd=0; h.idx=0; h.head=Math.PI;
-    const b=st.boat; b.x=JETTY_END[0]; b.z=JETTY_END[1]; b.spd=0; b.head=0; st.cam.dist=Math.min(st.cam.dist,11); flash('Riding'); }
+    const b=st.boat; b.x=JETTY_END[0]; b.z=JETTY_END[1]; b.spd=0; b.head=0; st.cam.dist=Math.min(st.cam.dist,11); flash('Riding: W/S speed, A/D steer, E to the boat'); }
+  const ride=st.mode==='ride', ac=ride?[st.horse.x,st.horse.y+2.3,st.horse.z]:[st.boat.x,waveJS(st.boat.x,st.boat.z,st.time)+2.6,st.boat.z];
+  st.cam.tx=ac[0]; st.cam.ty=ac[1]; st.cam.tz=ac[2]; st.cam.yaw=(ride?st.horse.head:st.boat.head)+Math.PI; st.cam.pitch=0.2; st.cam.lastDrag=-9;
   return true;
 }
 
@@ -1021,7 +1025,7 @@ function frame(now){
   if(st.mode==='ride' && st.horse.air===false) {}
   // prompt
   const nearJ = st.mode==='ride' ? Math.hypot(st.horse.x-JETTY_BASE[0],st.horse.z-JETTY_BASE[1])<10 : Math.hypot(st.boat.x-JETTY_END[0],st.boat.z-JETTY_END[1])<24;
-  const showP=nearJ&&!st.auto; $('prompt').hidden=!showP; $('boardBtn').hidden=!nearJ; if(showP) $('promptTxt').textContent=st.mode==='ride'?'Board the boat':'Go ashore';
+  const showP=!st.auto; $('prompt').hidden=!showP; $('boardBtn').hidden=false; if(showP) $('promptTxt').textContent=st.mode==='ride'?(nearJ?'Board the boat':'Take the boat'):'Back to the horse';
   $('modeTxt').textContent=(st.mode==='ride'?'Riding':'Sailing')+(st.auto?' · auto':'');
   // actor matrices
   const h=st.horse, b=st.boat;
