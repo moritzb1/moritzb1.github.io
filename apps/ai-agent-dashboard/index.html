@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agent Daily Info Dashboard</title>
+<style>
+:root{--bg:#f5f8fc;--surface:#fff;--ink:#172033;--muted:#64748b;--line:#e5eaf2;--blue:#315efb;--blue-soft:#edf2ff;--mint:#e8f8f1;--shadow:0 12px 34px rgba(25,45,85,.07)}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eef4ff 0,#f7f9fc 290px,var(--bg) 100%);font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+.wrap{max-width:1080px;margin:0 auto;padding:42px 22px 70px}.hero{background:linear-gradient(120deg,#fff 0%,#f3f7ff 65%,#eaf8f5 100%);border:1px solid #e4eaf5;border-radius:26px;padding:30px;box-shadow:var(--shadow);position:relative;overflow:hidden}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:800;color:var(--blue)}h1{font-size:clamp(30px,5vw,46px);line-height:1.12;letter-spacing:-.04em;margin:10px 0 12px}.sub{color:var(--muted);margin:0}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:12px;color:#475569;font-weight:650}.dot{width:7px;height:7px;background:#18a66b;border-radius:50%}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 26px}.stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:17px 19px;box-shadow:var(--shadow)}.stat b{display:block;font-size:27px;line-height:1.1}.stat span{font-size:12px;color:var(--muted)}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin:24px 0 14px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:#fff;color:#526078;border-radius:12px;padding:10px 15px;font:inherit;font-weight:700;cursor:pointer;transition:.18s}.tab:hover{border-color:#a9baff;color:var(--blue)}.tab[aria-selected=true]{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 5px 14px #315efb35}.hint{font-size:12px;color:var(--muted)}.panel{display:none}.panel.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:none}}.section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:18px 2px}.section-head h2{font-size:22px;letter-spacing:-.025em;margin:0}.count{font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);padding:5px 10px;border-radius:999px}.cards{display:grid;gap:13px}.item{background:#fff;border:1px solid var(--line);border-radius:18px;padding:19px 20px;box-shadow:0 5px 20px rgba(30,50,90,.035);transition:transform .16s,border-color .16s}.item:hover{transform:translateY(-2px);border-color:#c6d3f5}.item-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.item h3{font-size:17px;line-height:1.35;margin:0 0 6px;letter-spacing:-.015em}.date{flex:none;font-size:11px;font-weight:750;color:#3657c8;background:var(--blue-soft);border-radius:999px;padding:5px 9px}.source{font-size:12px;color:var(--muted);font-weight:650;margin-bottom:9px}.item p{margin:0 0 12px;color:#46536a}.item a{font-size:13px;font-weight:750;color:var(--blue);text-decoration:none}.item a:hover{text-decoration:underline}.empty{background:#fff;border:1px dashed #cbd5e1;border-radius:16px;padding:25px;text-align:center;color:var(--muted)}footer{margin-top:24px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:12px}.footer-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.print{border:0;background:transparent;color:var(--blue);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0}@media(max-width:620px){.wrap{padding:20px 13px 45px}.hero{padding:23px 20px;border-radius:20px}.stats{gap:8px}.stat{padding:13px 12px}.stat b{font-size:23px}.stat span{font-size:11px}.item{padding:16px}.item-top{display:block}.date{display:inline-block;margin-top:7px}.section-head h2{font-size:19px}}@media print{body{background:#fff}.wrap{max-width:none;padding:0}.hero,.stat,.item{box-shadow:none}.tabs,.print{display:none}.panel{display:block!important;page-break-inside:avoid}.item{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="hero">
+  <div class="eyebrow">Daily intelligence · AI agents</div>
+  <h1>AI Agent Daily Info Dashboard</h1>
+  <p class="sub">Die wichtigsten Entwicklungen, Praxisberichte und Produktneuheiten rund um KI-Agenten.</p>
+  <div class="meta">
+    <span class="pill"><span class="dot"></span> Aktualisiert: 23. November 2026</span>
+    <span class="pill">Recherchezeitraum: 16.–23. November 2026</span>
+    <span class="pill">Sortierung: neueste zuerst</span>
+  </div>
+</header>
+
+<section class="stats" aria-label="Übersicht">
+  <div class="stat"><b>5</b><span>Technologie-Updates</span></div>
+  <div class="stat"><b>4</b><span>Medien &amp; Tutorials</span></div>
+  <div class="stat"><b>5</b><span>Produktneuheiten</span></div>
+</section>
+
+<div class="toolbar">
+  <nav class="tabs" role="tablist" aria-label="Dashboard-Bereiche">
+    <button class="tab" role="tab" id="tab-company" aria-controls="company" aria-selected="true" onclick="showTab('company')">Unternehmen &amp; Modelle</button>
+    <button class="tab" role="tab" id="tab-media" aria-controls="media" aria-selected="false" onclick="showTab('media')">Medien &amp; Tutorials</button>
+    <button class="tab" role="tab" id="tab-products" aria-controls="products" aria-selected="false" onclick="showTab('products')">Neue Produkte</button>
+  </nav>
+  <span class="hint">Bereich auswählen · Quellen öffnen sich in einem neuen Tab</span>
+</div>
+
+<section class="panel active" id="company" role="tabpanel" aria-labelledby="tab-company">
+  <div class="section-head"><h2>1. Technology Updates from Each Company</h2><span class="count">5 Einträge</span></div>
+  <div class="cards">
+    <article class="item"><div class="item-top"><div><h3>OpenClaw v2026.11.10-beta.2</h3><div class="source">OpenClaw · GitHub Releases</div></div><span class="date">23. Nov. 2026</span></div><p>Die Beta ergänzt Agent-Vorlagen aus ClawHub-Paketen und verbessert die Wiederherstellung von Hintergrundaufgaben, Subagent-Ergebnissen und Konversationen nach Neustarts.</p><a href="https://github.com/openclaw/openclaw/releases/" target="_blank" rel="noopener">Originalquelle öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Claude Computer Use – Beta für Team und Enterprise</h3><div class="source">Anthropic · Claude Release Notes</div></div><span class="date">20. Nov. 2026</span></div><p>Claude kann in einer schrittweisen Beta Bildschirminhalte erkennen und erlaubte Desktop-Anwendungen bedienen; die Verfügbarkeit wird für Team- und Enterprise-Kunden ausgerollt.</p><a href="https://t.co/3F7Gh23nps" target="_blank" rel="noopener">Originalquelle öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>GPT-Live-1.1: Verbesserungen für mehrsprachige Sprachdialoge</h3><div class="source">OpenAI · API Changelog</div></div><span class="date">19. Nov. 2026</span></div><p>Das Update verbessert Aussprache, Akzentkonsistenz und Transkription in mehrsprachigen Gesprächen und ergänzt Standby-Verhalten für inaktive WebRTC-Sitzungen.</p><a href="https://developers.openai.com/api/docs/changelog" target="_blank" rel="noopener">Originalquelle öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Gemini Computer Use auf dem Mac</h3><div class="source">Google · Gemini Release Notes</div></div><span class="date">19. Nov. 2026</span></div><p>Gemini kann mehrstufige Aktionen in Mac-Apps und auf Websites ausführen; eine Live-Vorschau sowie die Möglichkeit zum Pausieren und Stoppen geben Nutzern Kontrolle.</p><a href="https://gemini.google/release-notes/" target="_blank" rel="noopener">Originalquelle öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>GPT-6.2 Astra und GPT-6.2 Sol in der API</h3><div class="source">OpenAI · Model Release Notes</div></div><span class="date">17. Nov. 2026</span></div><p>Astra ist auf anspruchsvolles Reasoning und Coding ausgerichtet, Sol auf schnellere und kostengünstigere mehrstufige Agenten-Workflows.</p><a href="https://help.openai.com/en/articles/9624314-model-release-notes" target="_blank" rel="noopener">Originalquelle öffnen ↗</a></article>
+  </div>
+</section>
+
+<section class="panel" id="media" role="tabpanel" aria-labelledby="tab-media">
+  <div class="section-head"><h2>2. Hands-on Impressions from Media</h2><span class="count">4 Einträge</span></div>
+  <div class="cards">
+    <article class="item"><div class="item-top"><div><h3>Hermes Agent: Schritt-für-Schritt-Anleitung für die CLI</h3><div class="source">AgentVera · Einsteiger-Tutorial</div></div><span class="date">23. Nov. 2026</span></div><p>Die Anleitung führt durch Installation, Setup, Modellanbieter, Berechtigungen, Sitzungsfortsetzung, Memory, Skills, MCP und geplante Aufgaben.</p><a href="https://agentvera.dev/en/blog/how-to-use-hermes-agent/" target="_blank" rel="noopener">Tutorial öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Claude Code auf einem VPS per Telegram steuern</h3><div class="source">Nate Herk · Video-Walkthrough / Zusammenfassung</div></div><span class="date">19. Nov. 2026</span></div><p>Ein Praxisbeispiel für die Einrichtung von Claude Code auf einem dauerhaft laufenden Server, die Verbindung mit einem Telegram-Bot und den Betrieb nach Neustarts.</p><a href="https://openclawdatabase.com/news/videos/2026-11-21-claude-code-vps-telegram-channel-plugin-bun-tmux-auto-compact-400k/" target="_blank" rel="noopener">Video-Zusammenfassung öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Learn Agentic Coding with Codex</h3><div class="source">freeCodeCamp · Scrimba-Kurs</div></div><span class="date">16. Nov. 2026</span></div><p>Der praxisorientierte Kurs behandelt Projektanweisungen, Plan Mode, Skills, Tests, Berechtigungen, Sandboxing, MCP und den Schutz von Secrets.</p><a href="https://openclawdatabase.com/news/videos/2026-11-16-codex-agentic-coding-course-agents-md-init-plan-mode-sandbox-permissions-env-secrets/" target="_blank" rel="noopener">Kurszusammenfassung öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Traycer: Gemeinsamer Workspace für Coding-Agenten</h3><div class="source">AICodeKing · Video-Walkthrough</div></div><span class="date">16. Nov. 2026</span></div><p>Demonstriert einen gemeinsamen Arbeitsbereich für mehrere Coding-Agenten, mobilen Fernzugriff, integrierten Browser und Modell-Fallback bei Rate Limits.</p><a href="https://openclawdatabase.com/news/videos/2026-11-16-traycer-agent-workspace-remote-host-mobile-app-model-routing-fallback/" target="_blank" rel="noopener">Video-Zusammenfassung öffnen ↗</a></article>
+  </div>
+</section>
+
+<section class="panel" id="products" role="tabpanel" aria-labelledby="tab-products">
+  <div class="section-head"><h2>3. New Product Introductions</h2><span class="count">5 Einträge</span></div>
+  <div class="cards">
+    <article class="item"><div class="item-top"><div><h3>OpenClaw v2026.11.10-beta.2</h3><div class="source">OpenClaw · Pre-release</div></div><span class="date">23. Nov. 2026</span></div><p>Die Vorabversion ergänzt Agent-Templates aus ClawHub und verbessert die Wiederaufnahme von Aufgaben und Ergebnissen nach Gateway-Neustarts.</p><a href="https://github.com/openclaw/openclaw/releases/" target="_blank" rel="noopener">Release Notes öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Gemini Computer Use</h3><div class="source">Google · Desktop-Agent-Funktion</div></div><span class="date">19. Nov. 2026</span></div><p>Die Gemini-Mac-App erhält Computer-Use-Funktionen wie Klicken, Tippen und das Ausfüllen von Formularen; zunächst erfolgt die Einführung für berechtigte zahlende Nutzer in den USA und auf Englisch.</p><a href="https://gemini.google/release-notes/" target="_blank" rel="noopener">Verfügbarkeit und Hinweise ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Hermes Agent v0.23.3</h3><div class="source">Nous Research · Stable Release</div></div><span class="date">19. Nov. 2026</span></div><p>Das Patch-Release bündelt zahlreiche Änderungen an CLI, Installern, Microsoft Store, Docker und Hermes Cloud sowie Verbesserungen bei Caching, Storage und Abhängigkeiten.</p><a href="https://github.com/NousResearch/hermes-agent/releases" target="_blank" rel="noopener">Release Notes öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Replit Missions</h3><div class="source">Replit · Produktvorstellung</div></div><span class="date">17. Nov. 2026</span></div><p>Koordiniert Agenten, die gemeinsam planen, entwickeln, testen und ein Ziel iterativ umsetzen; Nutzer können Ausgabenlimits und Freigabegrenzen festlegen.</p><a href="https://replit.com/blog/introducing-replit-missions" target="_blank" rel="noopener">Launch-Ankündigung öffnen ↗</a></article>
+    <article class="item"><div class="item-top"><div><h3>Perplexity Computer Multiagent</h3><div class="source">Perplexity · Multi-Agent-Funktion</div></div><span class="date">17. Nov. 2026</span></div><p>Ein leitender Agent kann bis zu 16 Agenten mit unterschiedlichen Modellen koordinieren, parallel arbeiten lassen und Ergebnisse gegenseitig überprüfen lassen.</p><a href="https://www.perplexity.ai/en-GB/hub/blog/introducing-computer-multiagent" target="_blank" rel="noopener">Offizielle Vorstellung öffnen ↗</a></article>
+  </div>
+</section>
+
+<footer><div class="footer-row"><span>Erstellt am 23. November 2026 · Recherchefenster: 16.–23. November 2026</span><button class="print" onclick="window.print()">Dashboard drucken / als PDF speichern</button></div><p>Hinweis: Die Einträge und Quellenlinks wurden aus der Recherche in diesem Chat übernommen. Vor einer Weiterverwendung bitte insbesondere Verfügbarkeit, Beta-Status und Originalquellen prüfen. Die Seite enthält keine externen Skripte oder Tracking-Dienste.</p></footer>
+</main>
+<script>
+function showTab(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===name));
+  document.querySelectorAll('.tab').forEach(b=>{
+    const active=b.id==='tab-'+name;
+    b.setAttribute('aria-selected',String(active));
+    b.tabIndex=active?0:-1;
+  });
+}
+document.querySelectorAll('.tab').forEach((button,index)=>{
+  button.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+      e.preventDefault();
+      const tabs=[...document.querySelectorAll('.tab')];
+      const next=(index+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length;
+      tabs[next].focus();tabs[next].click();
+    }
+  });
+});
+</script>
+</body>
+</html>
