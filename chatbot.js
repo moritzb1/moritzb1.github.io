@@ -1,9 +1,9 @@
 // ChatBot Class
 class ChatBot {
     constructor() {
-        // ⚠️ Important: Replace with your n8n webhook URL
+        // Important: Replace with your n8n webhook URL
         // ****************************************************************
-        this.webhookUrl = 'https://a3g.app.n8n.cloud/webhook/chat';
+        this.webhookUrl = 'https://moritzb1.app.n8n.cloud/webhook/chat';
         // ****************************************************************        
         // Initialize session ID
         this.sessionId = this.getOrCreateSessionId();
@@ -354,6 +354,37 @@ class ChatBot {
                 border-left: 3px solid #dc2626;
             }
 
+            .message.ai p {
+                margin: 0 0 8px 0;
+            }
+
+            .message.ai p:last-child {
+                margin-bottom: 0;
+            }
+
+            .message.ai ul,
+            .message.ai ol {
+                margin: 0 0 8px 0;
+                padding-left: 20px;
+            }
+
+            .message.ai ul:last-child,
+            .message.ai ol:last-child {
+                margin-bottom: 0;
+            }
+
+            .message.ai li {
+                margin-bottom: 4px;
+            }
+
+            .message.ai li:last-child {
+                margin-bottom: 0;
+            }
+
+            .message.ai strong {
+                font-weight: 600;
+            }
+
             .typing-indicator {
                 display: none;
                 align-items: center;
@@ -490,20 +521,20 @@ class ChatBot {
         const chatbotHTML = `
             <div class="chatbot-widget">
                 <button class="chatbot-toggle" id="chatbotToggle" title="Open Chat">
-                    💬
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
                     <div class="notification-badge" id="notificationBadge"></div>
                 </button>
                 
                 <div class="chatbot-panel" id="chatbotPanel">
                     <div class="chatbot-header">
                         <div class="chatbot-title">
-                            <span class="title-icon">🎓</span>
-                            <span>欒老師AI課程聊天BOT</span>
+                            <span class="title-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg></span>
+                            <span>Moritz' AI Course ChatBOT</span>
                         </div>
                         <div class="chatbot-header-buttons">
                             <button class="chatbot-btn clear-btn" id="clearChatBtn" title="Clear chat history">
-                                🗑️
-                                <span class="clear-btn-tooltip">清除記錄</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+                                <span class="clear-btn-tooltip">Clear history</span>
                             </button>
                             <button class="chatbot-btn chatbot-close" id="chatbotClose" title="Close Chat">×</button>
                         </div>
@@ -518,14 +549,14 @@ class ChatBot {
                     </div>
                     
                     <div class="chat-input">
-                        <input 
-                            type="text" 
-                            class="input-field" 
-                            id="messageInput" 
-                            placeholder="輸入您的問題..."
+                        <input
+                            type="text"
+                            class="input-field"
+                            id="messageInput"
+                            placeholder="Type your question..."
                             maxlength="500"
                         >
-                        <button class="send-button" id="sendButton" disabled>發送</button>
+                        <button class="send-button" id="sendButton" disabled>Send</button>
                     </div>
                 </div>
             </div>
@@ -556,7 +587,7 @@ class ChatBot {
 
         // Clear chat button
         this.clearChatBtn.addEventListener('click', () => {
-            if (confirm('確定要清除所有聊天記錄嗎？此動作無法復原。')) {
+            if (confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
                 this.clearHistory();
             }
         });
@@ -649,13 +680,15 @@ class ChatBot {
             }
             
             const data = await response.json();
-            
-            if (data.success && data.message) {
-                this.addMessage(data.message, 'ai');
-                
+
+            const reply = data.output || (data.success && data.message);
+
+            if (reply) {
+                this.addMessage(reply, 'ai');
+
                 // Save conversation to local storage
-                this.saveChatToLocal(message, data.message);
-                
+                this.saveChatToLocal(message, reply);
+
                 // Show notification if chatbot is closed
                 if (!this.chatbotPanel.classList.contains('active')) {
                     this.showNotification();
@@ -663,10 +696,10 @@ class ChatBot {
             } else {
                 throw new Error('Invalid response format');
             }
-            
+
         } catch (error) {
             console.error('Error sending message:', error);
-            this.addMessage('抱歉，發生錯誤。請檢查您的網路連線或稍後重試。', 'error-message');
+            this.addMessage('Sorry, an error occurred. Please check your network connection or try again later.', 'error-message');
         } finally {
             // Hide typing indicator
             this.hideTypingIndicator();
@@ -676,10 +709,69 @@ class ChatBot {
     addMessage(content, type) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
-        messageDiv.textContent = content;
-        
+
+        if (type === 'ai') {
+            messageDiv.innerHTML = this.formatMarkdown(content);
+        } else {
+            messageDiv.textContent = content;
+        }
+
         this.messagesContainer.appendChild(messageDiv);
         this.scrollToBottom();
+    }
+
+    // Convert a constrained subset of markdown (bold, bullet/numbered lists,
+    // line breaks) from the AI's response into safe HTML. Escapes HTML first
+    // so the model's own text can never inject markup.
+    formatMarkdown(content) {
+        const escapeHtml = (str) => str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        let text = escapeHtml(content).trim();
+
+        // Some responses use " * " as an inline bullet separator instead of
+        // actual line breaks (e.g. "... as follows: * **A**: ... * **B**: ...").
+        // Turn those into real list items too.
+        text = text.replace(/\s\*\s(?=\*\*)/g, '\n- ');
+
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+        let html = '';
+        let listType = null; // 'ul' | 'ol' | null
+
+        const closeList = () => {
+            if (listType) {
+                html += `</${listType}>`;
+                listType = null;
+            }
+        };
+
+        lines.forEach(line => {
+            const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+            const numberedMatch = line.match(/^\d+[.)]\s+(.*)$/);
+
+            if (bulletMatch) {
+                if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+                html += `<li>${this.inlineMarkdown(bulletMatch[1])}</li>`;
+            } else if (numberedMatch) {
+                if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+                html += `<li>${this.inlineMarkdown(numberedMatch[1])}</li>`;
+            } else {
+                closeList();
+                html += `<p>${this.inlineMarkdown(line)}</p>`;
+            }
+        });
+
+        closeList();
+        return html;
+    }
+
+    // Inline formatting within a single line: **bold** only (content is
+    // already HTML-escaped by the caller, so this is safe).
+    inlineMarkdown(line) {
+        return line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     }
     
     showTypingIndicator() {
@@ -730,7 +822,7 @@ class ChatBot {
         if (recentHistory.length === 0) {
             // If no history, show welcome message
             setTimeout(() => {
-                this.addMessage('你好！我是欒老師的AI課程助手。有任何問題嗎？', 'ai');
+                this.addMessage("Hello! I'm Moritz's AI course assistant. Ask me anything about AI or marketing.", 'ai');
             }, 1000);
         }
     }
