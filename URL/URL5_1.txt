@@ -1,2 +1,2 @@
-n8n AI Agent
-https://drluarn.github.io/
+n8n AI Agent: chat trigger + Gemini 3.1 Flash Lite, simple memory and SerpApi web search (public chat)
+https://moritzb1.app.n8n.cloud/webhook/d8b7da72-e272-4c8a-9bf4-cffa38320386/chat
