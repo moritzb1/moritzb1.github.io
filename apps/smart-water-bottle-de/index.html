@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6ef">
+  <meta name="description" content="Konzept für eine smarte Trinkflasche, die deine Trinkroutine im Alltag unterstützen soll.">
+  <title>Dein Alltag. Dein Trinkrhythmus.</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172d29;
+      --muted: #5d716b;
+      --paper: #f3f6ef;
+      --white: #fffefa;
+      --green: #c8ef73;
+      --deep: #1d4940;
+      --line: rgba(23, 45, 41, .15);
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    .topline { background: var(--deep); color: #f5f6ec; text-align: center; font-size: .76rem; letter-spacing: .08em; padding: 11px 20px; }
+    .topline strong { color: var(--green); font-weight: 650; }
+    header { max-width: 1280px; padding: 24px 5vw; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .wordmark { font-size: 1rem; font-weight: 750; letter-spacing: -.045em; display: flex; align-items: center; gap: 10px; }
+    .mark { width: 25px; height: 25px; border-radius: 50% 50% 48% 8%; transform: rotate(-45deg); background: var(--deep); position: relative; }
+    .mark::after { content: ""; position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--green); left: 10px; top: 10px; }
+    nav { display: flex; align-items: center; gap: 28px; font-size: .87rem; color: var(--muted); }
+    nav a { text-decoration: none; }
+    nav a:hover { color: var(--ink); }
+    .nav-cta { color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 11px 17px; }
+    main { overflow: hidden; }
+    .hero { max-width: 1280px; min-height: 610px; margin: 0 auto; padding: 70px 5vw 92px; display: grid; grid-template-columns: 1.03fr .97fr; gap: 6vw; align-items: center; }
+    .eyebrow { text-transform: uppercase; font-size: .72rem; letter-spacing: .16em; color: #56716a; font-weight: 750; display: flex; align-items: center; gap: 10px; }
+    .eyebrow::before { content: ""; display: inline-block; width: 26px; height: 1px; background: #78968c; }
+    h1 { font: 400 clamp(3.5rem, 7.2vw, 6.8rem)/.97 var(--serif); letter-spacing: -.065em; max-width: 660px; margin: 24px 0 25px; }
+    h1 em { color: #638276; font-weight: 400; }
+    .hero-copy { color: var(--muted); font-size: 1.08rem; line-height: 1.75; max-width: 520px; }
+    .hero-actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 32px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; background: var(--deep); color: white; padding: 15px 21px; border-radius: 999px; text-decoration: none; font-size: .9rem; font-weight: 650; transition: transform .2s ease, background .2s ease; }
+    .button:hover { transform: translateY(-2px); background: #123c33; }
+    .text-link { font-size: .88rem; color: var(--deep); text-decoration-thickness: 1px; text-underline-offset: 4px; padding: 10px 0; }
+    .fineprint { color: #71817b; font-size: .76rem; line-height: 1.6; margin-top: 17px; max-width: 420px; }
+    .visual { min-height: 475px; position: relative; border-radius: 48% 48% 12px 12px; background: #e0e9da; display: grid; place-items: center; overflow: hidden; }
+    .visual::before { content: ""; width: 470px; height: 470px; position: absolute; border-radius: 50%; background: #edf1e7; right: -130px; top: -160px; }
+    .visual::after { content: ""; width: 390px; height: 390px; position: absolute; border: 1px solid rgba(29,73,64,.14); border-radius: 50%; left: -200px; bottom: -220px; }
+    .sun { position: absolute; width: 74px; height: 74px; background: var(--green); border-radius: 50%; right: 17%; top: 18%; box-shadow: 0 0 0 12px rgba(200,239,115,.2); }
+    .bottle { position: relative; z-index: 1; width: min(42%, 190px); height: 350px; margin-top: 39px; border-radius: 34px 34px 41px 41px; background: linear-gradient(90deg, #244c42 0%, #347062 20%, #416e5e 56%, #244b41 100%); box-shadow: 18px 28px 45px rgba(25,55,47,.2), inset 6px 0 12px rgba(255,255,255,.12), inset -7px 0 14px rgba(0,0,0,.12); }
+    .bottle::before { content: ""; position: absolute; width: 54%; height: 37px; background: #183c35; border-radius: 12px 12px 7px 7px; left: 23%; top: -27px; box-shadow: inset 0 5px 4px rgba(255,255,255,.13); }
+    .bottle::after { content: ""; position: absolute; width: 28%; height: 22px; background: #183c35; border-radius: 8px 8px 3px 3px; left: 36%; top: -43px; }
+    .bottle-highlight { position: absolute; width: 12px; height: 72%; top: 11%; left: 16%; border-radius: 999px; background: rgba(255,255,255,.14); filter: blur(2px); }
+    .bottle-badge { position: absolute; z-index: 2; bottom: 14%; left: 50%; transform: translateX(-50%); width: 63px; height: 63px; border-radius: 50%; border: 1px solid rgba(237,246,221,.55); display: grid; place-items: center; color: var(--green); font: 1.4rem var(--serif); }
+    .floating-note { position: absolute; z-index: 2; background: var(--white); box-shadow: 0 12px 34px rgba(35,59,49,.11); border-radius: 14px; padding: 13px 16px; font-size: .77rem; line-height: 1.5; }
+    .floating-note span { display: block; color: var(--muted); }
+    .note-one { left: 4%; top: 31%; transform: rotate(-4deg); }
+    .note-two { right: 4%; bottom: 18%; transform: rotate(3deg); }
+    .note-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #87b44c; margin-right: 5px; }
+    .concept-tag { position: absolute; z-index: 3; top: 18px; right: 18px; color: #45615a; background: rgba(255,254,250,.72); border: 1px solid rgba(29,73,64,.15); border-radius: 99px; padding: 7px 11px; font-size: .67rem; letter-spacing: .08em; text-transform: uppercase; }
+    .ticker { background: var(--green); padding: 17px 5vw; color: var(--deep); font: 1.05rem var(--serif); text-align: center; letter-spacing: .01em; }
+    .ticker span { margin: 0 20px; opacity: .5; }
+    .section { max-width: 1280px; margin: 0 auto; padding: 110px 5vw; }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 48px; }
+    h2 { font: 400 clamp(2.6rem, 4.5vw, 4.4rem)/1.02 var(--serif); letter-spacing: -.055em; margin: 15px 0 0; max-width: 650px; }
+    .section-intro { max-width: 365px; color: var(--muted); line-height: 1.7; font-size: .94rem; margin: 0 0 5px; }
+    .benefits { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+    .benefit { padding: 28px 23px 20px 0; border-bottom: 1px solid var(--line); min-height: 235px; }
+    .benefit + .benefit { border-left: 1px solid var(--line); padding-left: 23px; }
+    .number { color: #82958b; font: 1rem var(--serif); }
+    .benefit h3 { font: 400 1.62rem/1.1 var(--serif); letter-spacing: -.035em; margin: 33px 0 13px; }
+    .benefit p { color: var(--muted); font-size: .88rem; line-height: 1.72; margin: 0; }
+    .quote-band { background: var(--deep); color: var(--white); }
+    .quote-inner { max-width: 1280px; margin: 0 auto; padding: 90px 5vw; display: grid; grid-template-columns: .6fr 1.4fr; gap: 8vw; align-items: start; }
+    .quote-inner .eyebrow { color: #bad0bd; }
+    blockquote { font: 400 clamp(2rem, 4vw, 3.8rem)/1.15 var(--serif); letter-spacing: -.04em; margin: 0; max-width: 850px; }
+    blockquote em { color: var(--green); font-weight: 400; }
+    .quote-foot { margin-top: 25px; color: #c0d0c5; font-size: .82rem; line-height: 1.7; max-width: 620px; }
+    .cta-section { max-width: 1280px; margin: 0 auto; padding: 105px 5vw 115px; display: grid; grid-template-columns: 1fr .75fr; gap: 8vw; align-items: center; }
+    .cta-section h2 { max-width: 650px; }
+    .cta-card { background: #e5ecdf; padding: 30px; border-radius: 18px; }
+    .cta-card p { color: var(--muted); font-size: .88rem; line-height: 1.7; margin: 0 0 21px; }
+    .cta-card .button { width: 100%; }
+    .cta-card small { display: block; margin-top: 15px; color: #6a7b73; font-size: .72rem; line-height: 1.6; }
+    footer { border-top: 1px solid var(--line); padding: 26px 5vw; max-width: 1280px; margin: 0 auto; color: var(--muted); font-size: .76rem; display: flex; justify-content: space-between; gap: 20px; }
+    footer a { text-underline-offset: 3px; }
+    .legal-note { max-width: 600px; text-align: right; }
+    @media (max-width: 850px) {
+      .hero { grid-template-columns: 1fr; gap: 45px; padding-top: 45px; }
+      .hero-copy { max-width: 620px; }
+      .visual { min-height: 430px; }
+      .bottle { height: 315px; }
+      .section-head { display: block; }
+      .section-intro { margin-top: 22px; }
+      .benefits { grid-template-columns: repeat(2, 1fr); }
+      .benefit:nth-child(3) { border-left: 0; padding-left: 0; }
+      .quote-inner { grid-template-columns: 1fr; gap: 35px; }
+      .cta-section { grid-template-columns: 1fr; gap: 36px; }
+    }
+    @media (max-width: 560px) {
+      header { padding-top: 18px; padding-bottom: 18px; }
+      nav { gap: 13px; }
+      nav a:not(.nav-cta) { display: none; }
+      .nav-cta { padding: 9px 13px; font-size: .78rem; }
+      .hero { padding: 42px 6vw 60px; }
+      h1 { font-size: clamp(3.35rem, 16vw, 5.1rem); }
+      .hero-copy { font-size: .98rem; }
+      .visual { min-height: 365px; border-radius: 44% 44% 10px 10px; }
+      .bottle { height: 270px; width: 39%; }
+      .note-one { left: 2%; top: 30%; }
+      .note-two { right: 2%; bottom: 12%; }
+      .floating-note { font-size: .68rem; padding: 10px 12px; }
+      .section { padding: 78px 6vw; }
+      .benefits { grid-template-columns: 1fr; }
+      .benefit, .benefit + .benefit, .benefit:nth-child(3) { padding: 23px 0; border-left: 0; min-height: auto; }
+      .benefit h3 { margin-top: 19px; }
+      .ticker { font-size: .88rem; padding: 15px 4vw; }
+      .ticker span { margin: 0 8px; }
+      .quote-inner { padding: 72px 6vw; }
+      .cta-section { padding: 78px 6vw 84px; }
+      footer { padding: 22px 6vw; display: block; }
+      .legal-note { text-align: left; margin-top: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="topline"><strong>Ein Konzept in Entwicklung</strong> <span aria-hidden="true">·</span> Noch kein verfügbares Produkt</div>
+  <header>
+    <a class="wordmark" href="#start" aria-label="Takt, zur Startseite"><span class="mark" aria-hidden="true"></span>takt</a>
+    <nav aria-label="Hauptnavigation">
+      <a href="#idee">Die Idee</a>
+      <a href="#alltag">Für deinen Alltag</a>
+      <a class="nav-cta" href="#idee">Konzept ansehen&nbsp; ↗</a>
+    </nav>
+  </header>
+  <main id="start">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <div class="eyebrow">Dein Alltag. Dein Trinkrhythmus.</div>
+        <h1 id="hero-title">Öfter dran denken.<br><em>Ganz nebenbei.</em></h1>
+        <p class="hero-copy">Eine wiederverwendbare Trinkflasche, die dich dabei unterstützen soll, deine Trinkroutine im Büro, an der Uni und unterwegs im Blick zu behalten.</p>
+        <div class="hero-actions">
+          <a class="button" href="#idee">Das Konzept entdecken <span aria-hidden="true">&nbsp;↗</span></a>
+          <a class="text-link" href="#idee">Die Idee entdecken</a>
+        </div>
+        <p class="fineprint">Smarte Erinnerungen und Trink-Tracking sind geplant, aber noch nicht final bestätigt. Produktdetails und Verfügbarkeit folgen.</p>
+      </div>
+      <div class="visual" role="img" aria-label="Illustration einer grünen Trinkflasche als Produktkonzept">
+        <span class="concept-tag">Konzeptvisualisierung</span>
+        <div class="sun" aria-hidden="true"></div>
+        <div class="floating-note note-one"><span class="note-dot"></span>Ein Moment für dich<span>zwischen zwei Terminen</span></div>
+        <div class="bottle" aria-hidden="true"><span class="bottle-highlight"></span><span class="bottle-badge">t</span></div>
+        <div class="floating-note note-two"><span>Dein Tag, dein Takt</span><span>Eine Routine, die mitgeht</span></div>
+      </div>
+    </section>
+    <div class="ticker" aria-label="Für Büro, Uni und unterwegs">Für Büro <span>✳</span> Für die Uni <span>✳</span> Für unterwegs <span>✳</span> Für deinen Rhythmus</div>
+
+    <section class="section" id="idee" aria-labelledby="idea-title">
+      <div class="section-head">
+        <div><div class="eyebrow">Kleine Idee, großer Alltag</div><h2 id="idea-title">Eine Routine, die<br>zu deinem Tag passt.</h2></div>
+        <p class="section-intro">Am Schreibtisch, zwischen Vorlesungen oder auf dem Weg nach Hause: Das Konzept soll regelmäßiges Trinken leichter in den Blick rücken – ohne deinen Tag zu unterbrechen.</p>
+      </div>
+      <div class="benefits" id="alltag">
+        <article class="benefit"><span class="number">01 / Alltag</span><h3>Passt in deinen Tag</h3><p>Eine Trinkroutine, die sich in Büro, Uni und Pendelwege einfügen soll. Wie Erinnerungen aussehen, entwickeln wir im Produkttest weiter.</p></article>
+        <article class="benefit"><span class="number">02 / Überblick</span><h3>Nachvollziehbar trinken</h3><p>Das geplante Tracking soll deine Trinkgewohnheiten über den Tag sichtbar machen. Funktionsweise und Grenzen erklären wir transparent.</p></article>
+        <article class="benefit"><span class="number">03 / Einfachheit</span><h3>Weniger im Kopf behalten</h3><p>Das Konzept soll regelmäßiges Trinken leichter in den Blick rücken. Smartphone, Konto und Verbindung: Was nötig ist, wird vor dem Start klar benannt.</p></article>
+        <article class="benefit"><span class="number">04 / Wiederverwenden</span><h3>Füllen. Mitnehmen. Weiter.</h3><p>Für dein Lieblingswasser und den Alltag unterwegs gedacht – als wiederverwendbare Flasche, ohne unnötige Versprechen über die Wasserqualität.</p></article>
+      </div>
+    </section>
+
+    <section class="quote-band" aria-label="Unser Anspruch">
+      <div class="quote-inner">
+        <div class="eyebrow">Unser Anspruch</div>
+        <div><blockquote>Smart soll sich nicht nach mehr Aufwand anfühlen. Sondern nach <em>deinem eigenen Takt.</em></blockquote><p class="quote-foot">Wir testen zuerst, welche Erinnerungen und Funktionen im echten Alltag hilfreich sind. Was die Flasche kann – und was nicht – soll vor dem Verkaufsstart verständlich sein.</p></div>
+      </div>
+    </section>
+
+    <section class="cta-section" id="produkttest" aria-labelledby="cta-title">
+      <div><div class="eyebrow">Gemeinsam besser machen</div><h2 id="cta-title">Was hilft dir, dranzubleiben?</h2><p class="section-intro">Der Produkttest soll herausfinden, welche Erinnerungen, Tracking-Funktionen und Details im Alltag wirklich nützlich sind.</p></div>
+      <div class="cta-card">
+        <p>Der Produkttest ist noch nicht geöffnet. Wir entwickeln das Konzept weiter und prüfen, welche Funktionen im Alltag wirklich hilfreich sind.</p>
+        <span class="button" aria-disabled="true">Produkttest noch nicht verfügbar</span>
+        <small>Diese Konzeptseite sammelt keine Anmeldungen. Es gibt noch keine Warteliste und keinen Verkaufsstart.</small>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <span class="wordmark"><span class="mark" aria-hidden="true"></span>takt <small>Arbeitsname</small></span>
+    <span class="legal-note">Konzeptseite, kein Verkaufsangebot. „takt“ ist ein Arbeitsname. Funktionen, Produktdetails und Verfügbarkeit sind noch nicht bestätigt. Keine medizinischen oder Wasseraufbereitungsversprechen.</span>
+  </footer>
+</body>
+</html>
