@@ -1,0 +1,2 @@
+Extra Credit #6-7 – Manus CUE!: installed the canvas-design skill and created a poster
+https://github.com/anthropics/skills/tree/main/skills/canvas-design
