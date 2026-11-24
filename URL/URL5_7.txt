@@ -1,2 +1,2 @@
-OpenClaw
-https://drluarn.github.io/
+OpenClaw infographic
+https://moritzb1.github.io/apps/openclaw-infographic/

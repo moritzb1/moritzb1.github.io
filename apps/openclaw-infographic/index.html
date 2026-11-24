@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>OpenClaw Infographic</title>
+<style>
+:root{--bg:#fbf6f0;--ink:#1c2233;--mut:#5d6475;--line:#ecdfd2;--claw:#e8572a;--claw2:#fde6da;--navy:#1f2f57;--teal:#1f7a6b;--teal2:#dff1ec;--gold:#f2b134;--red:#c0392b;--red2:#fbe3df;--card:#fff}
+*{box-sizing:border-box;margin:0}
+body{width:1600px;background:var(--bg);color:var(--ink);font:20px/1.45 "Avenir Next","Helvetica Neue",Arial,sans-serif;padding:56px 64px 40px}
+h1{font-size:76px;line-height:1;letter-spacing:-1.5px;font-weight:800}
+h1 span{color:var(--claw)}
+.sub{font-size:27px;color:var(--mut);margin-top:12px}
+.by{font-size:16px;color:var(--mut);text-align:right;line-height:1.5}
+.by b{color:var(--ink)}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;padding-bottom:30px;border-bottom:3px solid var(--ink)}
+.logo{display:flex;align-items:center;gap:24px}
+.sec{margin-top:34px}
+.num{display:inline-flex;width:44px;height:44px;border-radius:50%;background:var(--claw);color:#fff;font-weight:800;font-size:24px;align-items:center;justify-content:center;flex:none}
+.st{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.st h2{font-size:34px;letter-spacing:-.5px}
+.st small{font-size:18px;color:var(--mut);font-weight:500;margin-left:6px}
+.row{display:grid;gap:22px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:22px 24px}
+p.lead{font-size:21px}
+.k{color:var(--claw);font-weight:700}
+/* architecture */
+.arch{display:grid;grid-template-columns:1fr 70px 1.35fr 70px 1fr;align-items:center}
+.box{border-radius:18px;padding:16px 18px;text-align:center;font-size:17px;line-height:1.35}
+.box b{display:block;font-size:20px;margin-bottom:4px}
+.chan{background:var(--teal2);border:2px solid #b9e0d6}
+.gw{background:var(--navy);color:#fff;padding:20px}
+.gw .files{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.gw .files span{background:rgba(255,255,255,.12);border-radius:9px;padding:6px 4px;font:600 14px/1.25 Menlo,monospace}
+.gw .files span i{display:block;font:400 12.5px/1.2 "Avenir Next",Arial;opacity:.8;font-style:normal;margin-top:2px}
+.tools{background:var(--claw2);border:2px solid #f6c7b2}
+.pill{display:inline-block;background:#fff;border-radius:99px;padding:3px 10px;margin:3px 2px;font-size:14.5px;border:1px solid var(--line)}
+.arrow{text-align:center}
+.llm{margin-top:12px;background:var(--gold);color:var(--ink);border-radius:12px;padding:8px;font-weight:700;font-size:16px}
+/* capabilities */
+.caps{grid-template-columns:repeat(5,1fr)}
+.cap{text-align:left;padding:20px 18px}
+.cap svg{width:54px;height:54px;margin-bottom:10px}
+.cap h3{font-size:21px;line-height:1.2;margin-bottom:8px}
+.cap p{font-size:16.5px;color:var(--mut);line-height:1.4}
+.cap .tag{display:inline-block;margin-top:10px;font:700 12.5px/1 Menlo,monospace;color:var(--claw);background:var(--claw2);padding:5px 8px;border-radius:7px}
+/* skills */
+.skills{grid-template-columns:1.05fr 1fr}
+.skillfile{background:#1b2133;color:#d8def0;border-radius:14px;padding:14px 18px;font:14.5px/1.55 Menlo,monospace;margin-top:12px}
+.skillfile .c{color:#8a94b3}.skillfile .y{color:#f2b134}
+ul.dots{padding-left:0;list-style:none}
+ul.dots li{position:relative;padding-left:22px;margin:7px 0;font-size:17.5px}
+ul.dots li:before{content:"";position:absolute;left:4px;top:10px;width:9px;height:9px;border-radius:50%;background:var(--claw)}
+.grp{margin-top:10px}.grp b{font-size:16px;color:var(--mut);text-transform:uppercase;letter-spacing:1.2px;display:block;margin-bottom:4px}
+/* use case */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch;margin-top:14px}
+.step{background:#fff;border:2px solid var(--line);border-radius:18px;padding:16px;position:relative;margin-right:26px;font-size:16px;line-height:1.4}
+.step:last-child{margin-right:0}
+.step:not(:last-child):after{content:"";position:absolute;right:-24px;top:50%;margin-top:-11px;border:11px solid transparent;border-left:16px solid var(--claw)}
+.step b{display:block;font-size:18.5px;margin-bottom:6px}
+.step .t{font:700 13px/1 Menlo,monospace;color:var(--teal);margin-bottom:8px;display:block}
+.kpis{display:flex;gap:16px;margin-top:16px}
+.kpi{flex:1;background:var(--teal2);border-radius:16px;padding:14px 18px}
+.kpi b{font-size:30px;color:var(--teal);display:block;line-height:1.1}
+.kpi span{font-size:15.5px;color:var(--mut)}
+/* safety */
+.safe{grid-template-columns:1fr 1fr 1.05fr}
+.risk{background:var(--red2);border-color:#f3c3bb}
+.risk h3,.fix h3,.take h3{font-size:22px;margin-bottom:8px}
+.risk li:before{background:var(--red)!important}
+.fix{background:var(--teal2);border-color:#b9e0d6}.fix li:before{background:var(--teal)!important}
+.take{background:var(--navy);color:#fff;border:0}
+.take p{font-size:17.5px;line-height:1.5;margin-top:8px}
+.verdict{display:flex;gap:10px;margin-top:14px}
+.verdict span{flex:1;text-align:center;border-radius:12px;padding:9px 6px;font-size:14.5px;font-weight:700;background:rgba(255,255,255,.12)}
+.verdict span.on{background:var(--gold);color:var(--ink)}
+footer{margin-top:30px;padding-top:14px;border-top:2px solid var(--line);font-size:13px;color:var(--mut);line-height:1.5}
+</style></head><body>
+
+<div class="head">
+ <div class="logo">
+  <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
+   <circle cx="60" cy="60" r="58" fill="#e8572a"/>
+   <path d="M36 52c-10-4-14-18-6-26 2 8 8 10 14 8-2 6 0 12 4 14z" fill="#fff"/>
+   <path d="M84 52c10-4 14-18 6-26-2 8-8 10-14 8 2 6 0 12-4 14z" fill="#fff"/>
+   <ellipse cx="60" cy="72" rx="22" ry="20" fill="#fff"/>
+   <circle cx="52" cy="68" r="4" fill="#1c2233"/><circle cx="68" cy="68" r="4" fill="#1c2233"/>
+   <path d="M52 80q8 6 16 0" stroke="#1c2233" stroke-width="3" fill="none" stroke-linecap="round"/>
+   <path d="M50 52q-6-16-16-20M70 52q6-16 16-20" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </svg>
+  <div><h1>Open<span>Claw</span></h1><div class="sub">The self-hosted AI agent that goes beyond chat and gets work done</div></div>
+ </div>
+ <div class="by"><b>Moritz Binder</b><br>M.Sc. Marketing Intelligence · HS Pforzheim<br>MMI5190E The New Frontiers of AI · Unit 5.7<br>November 2026</div>
+</div>
+
+<!-- 1 -->
+<div class="sec">
+ <div class="st"><span class="num">1</span><h2>What is OpenClaw?<small>purpose &amp; basic architecture</small></h2></div>
+ <div class="row" style="grid-template-columns:0.82fr 2fr">
+  <div class="card">
+   <p class="lead">An <span class="k">open-source, self-hosted personal AI agent</span> created by Peter Steinberger (first released as “Clawdbot”). It runs 24/7 on your own computer or a cloud server.</p>
+   <p class="lead" style="margin-top:12px">A plain LLM only <b>talks</b>. OpenClaw gives the LLM a <b>body</b>: it reads files, uses tools, remembers you and acts on its own schedule.</p>
+  </div>
+  <div class="card">
+   <div class="arch">
+    <div class="box chan"><b>Channels</b>You chat where you already are<div style="margin-top:8px"><span class="pill">WhatsApp</span><span class="pill">Telegram</span><span class="pill">Slack</span><span class="pill">Discord</span><span class="pill">iMessage</span></div></div>
+    <div class="arrow"><svg width="60" height="40" viewBox="0 0 60 40"><path d="M4 14h40M44 6l12 8-12 8" stroke="#e8572a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M56 30H16M16 22l-12 8 12 8" stroke="#1f2f57" stroke-width="4" fill="none" stroke-linecap="round" opacity=".45"/></svg></div>
+    <div class="box gw"><b>Gateway + agent loop</b>runs on your machine and loads its workspace files before every turn
+     <div class="files"><span>SOUL.md<i>identity</i></span><span>AGENTS.md<i>rules</i></span><span>MEMORY.md<i>long-term memory</i></span><span>USER.md<i>facts about you</i></span><span>skills/<i>playbooks</i></span><span>HEARTBEAT.md<i>check-list</i></span></div>
+     <div class="llm">Brain: any LLM – Claude, GPT, Gemini or a local model (e.g. Ollama)</div></div>
+    <div class="arrow"><svg width="60" height="40" viewBox="0 0 60 40"><path d="M4 20h40M44 12l12 8-12 8" stroke="#e8572a" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div>
+    <div class="box tools"><b>Tools = the claws</b>real actions in the world<div style="margin-top:8px"><span class="pill">shell</span><span class="pill">files</span><span class="pill">browser</span><span class="pill">e-mail</span><span class="pill">calendar</span><span class="pill">APIs</span></div></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- 2 -->
+<div class="sec">
+ <div class="st"><span class="num">2</span><h2>5 key capabilities</h2></div>
+ <div class="row caps">
+  <div class="card cap"><svg viewBox="0 0 54 54"><rect x="4" y="8" width="36" height="26" rx="8" fill="#1f7a6b"/><path d="M12 34l-4 10 12-10" fill="#1f7a6b"/><rect x="20" y="20" width="30" height="22" rx="7" fill="#e8572a"/><circle cx="29" cy="31" r="2.4" fill="#fff"/><circle cx="35" cy="31" r="2.4" fill="#fff"/><circle cx="41" cy="31" r="2.4" fill="#fff"/></svg>
+   <h3>Lives in your chat apps</h3><p>One gateway connects many messengers – no new app to learn, the agent answers like a colleague.</p><span class="tag">multi-channel</span></div>
+  <div class="card cap"><svg viewBox="0 0 54 54"><rect x="10" y="6" width="34" height="42" rx="5" fill="#1f2f57"/><rect x="16" y="14" width="22" height="4" rx="2" fill="#f2b134"/><rect x="16" y="23" width="22" height="3" rx="1.5" fill="#fff" opacity=".7"/><rect x="16" y="30" width="16" height="3" rx="1.5" fill="#fff" opacity=".7"/><rect x="16" y="37" width="19" height="3" rx="1.5" fill="#fff" opacity=".7"/></svg>
+   <h3>Persistent memory</h3><p>LLMs forget every chat. OpenClaw writes what matters into Markdown files and re-reads them – your “diary”.</p><span class="tag">MEMORY.md</span></div>
+  <div class="card cap"><svg viewBox="0 0 54 54"><rect x="4" y="10" width="46" height="34" rx="6" fill="#1b2133"/><path d="M12 22l7 5-7 5" stroke="#6cc3a6" stroke-width="3.2" fill="none" stroke-linecap="round"/><rect x="23" y="30" width="14" height="3.4" rx="1.7" fill="#6cc3a6"/></svg>
+   <h3>Real actions</h3><p>Runs commands, edits files, browses websites and sends messages – it does the task, not just describes it.</p><span class="tag">tools</span></div>
+  <div class="card cap"><svg viewBox="0 0 54 54"><circle cx="27" cy="29" r="20" fill="#f2b134"/><circle cx="27" cy="29" r="15" fill="#fff"/><path d="M27 19v10l7 5" stroke="#1c2233" stroke-width="3.4" fill="none" stroke-linecap="round"/><rect x="22" y="3" width="10" height="6" rx="2" fill="#1c2233"/></svg>
+   <h3>Works proactively</h3><p>A heartbeat wakes the agent regularly (default every 30 min) and cron jobs run tasks at set times.</p><span class="tag">heartbeat + cron</span></div>
+  <div class="card cap"><svg viewBox="0 0 54 54"><circle cx="27" cy="12" r="8" fill="#e8572a"/><circle cx="10" cy="40" r="7" fill="#1f7a6b"/><circle cx="27" cy="43" r="7" fill="#1f7a6b"/><circle cx="44" cy="40" r="7" fill="#1f7a6b"/><path d="M24 19L12 33M27 20v16M30 19l12 14" stroke="#1c2233" stroke-width="2.6" stroke-linecap="round"/></svg>
+   <h3>Delegates to sub-agents</h3><p>Splits big jobs into parallel “clones”, each with a fresh context – faster and saves context window.</p><span class="tag">subagents</span></div>
+ </div>
+</div>
+
+<!-- 3 -->
+<div class="sec">
+ <div class="st"><span class="num">3</span><h2>Skills &amp; integrations<small>how the agent connects to tools and messaging apps</small></h2></div>
+ <div class="row skills">
+  <div class="card">
+   <p style="font-size:18.5px">A <b>skill</b> is a folder with a <b>SKILL.md</b> file: a written playbook (SOP) for one job. The agent discovers skills automatically and loads one only when it fits the request. Ready-made skills come from the public registry <b>ClawHub</b>.</p>
+   <div class="skillfile"><span class="c">skills/weekly-brief/SKILL.md</span><br><span class="y">---</span><br>name: weekly-brief<br>description: Monday marketing brief for the team<br><span class="y">---</span><br><span class="c"># Steps</span><br>1. Read KPIs from the campaign sheet<br>2. Compare this week vs. last week<br>3. Post a short summary to Telegram</div>
+  </div>
+  <div class="card">
+   <div class="grp"><b>Messaging channels</b><span class="pill">WhatsApp</span><span class="pill">Telegram</span><span class="pill">Slack</span><span class="pill">Discord</span><span class="pill">iMessage</span><span class="pill">Signal</span></div>
+   <div class="grp" style="margin-top:14px"><b>Work tools</b><span class="pill">Gmail</span><span class="pill">Google Calendar</span><span class="pill">Notion</span><span class="pill">GitHub</span><span class="pill">Google Sheets</span><span class="pill">web browser</span></div>
+   <div class="grp" style="margin-top:14px"><b>How the connection works</b>
+    <ul class="dots"><li>Channel adapters turn every message into one agent conversation</li><li>Tools are called through command line programs, APIs or MCP servers</li><li>API keys and logins are stored in the agent's own config</li></ul></div>
+  </div>
+ </div>
+</div>
+
+<!-- 4 -->
+<div class="sec">
+ <div class="st"><span class="num">4</span><h2>Practical use case: the “Monday Marketing Brief”<small>for a small brand's social-media team</small></h2></div>
+ <div class="flow">
+  <div class="step"><span class="t">SUN 22:00 · CRON</span><b>Wake up</b>A scheduled job starts the weekly-brief skill.</div>
+  <div class="step"><span class="t">3 SUB-AGENTS</span><b>Collect</b>(1) campaign KPIs from Google Sheets, (2) brand mentions on Instagram &amp; TikTok, (3) competitor promotions on their websites.</div>
+  <div class="step"><span class="t">ANALYSE</span><b>Compare</b>Week vs. last week: reach, engagement rate, click-through rate, top post.</div>
+  <div class="step"><span class="t">MON 08:00 · TELEGRAM</span><b>Report</b>5-line summary + 3 post ideas for this week sent to the team chat.</div>
+  <div class="step"><span class="t">HUMAN IN THE LOOP</span><b>Approve</b>Nothing is posted until the marketing lead replies “OK”. Feedback goes into MEMORY.md.</div>
+ </div>
+ <div class="kpis">
+  <div class="kpi"><b>~2 h</b><span>manual reporting saved per week (own estimate)</span></div>
+  <div class="kpi"><b>1 chat</b><span>team gets the brief where it already talks</span></div>
+  <div class="kpi"><b>0 posts</b><span>published without human approval</span></div>
+  <div class="kpi"><b>3 data sources</b><span>combined automatically every week</span></div>
+ </div>
+</div>
+
+<!-- 5 -->
+<div class="sec">
+ <div class="st"><span class="num">5</span><h2>Safety &amp; my takeaway<small>permissions, risks, evaluation</small></h2></div>
+ <div class="row safe">
+  <div class="card risk"><h3>Risks</h3><ul class="dots">
+   <li><b>Broad permissions:</b> shell, files, e-mail and keys on one always-on machine</li>
+   <li><b>Malicious skills:</b> in Feb 2026, Koi Security found 341 of 2,857 ClawHub skills malicious (“ClawHavoc”)</li>
+   <li><b>Prompt injection:</b> hidden text on a web page or in an e-mail can hijack the agent</li>
+   <li><b>Exposed instances &amp; plain-text credentials</b> on badly configured servers</li></ul></div>
+  <div class="card fix"><h3>Safeguards</h3><ul class="dots">
+   <li><b>Least privilege:</b> separate accounts, only the tools a job needs</li>
+   <li><b>Sandbox:</b> e.g. NVIDIA NemoClaw with the OpenShell runtime (GTC, March 2026)</li>
+   <li><b>Vetted skills only</b> – ClawHub now scans uploads with VirusTotal, but that is “not a silver bullet”</li>
+   <li><b>Approval before</b> sending, paying or deleting</li></ul></div>
+  <div class="card take"><h3>My takeaway</h3>
+   <p>OpenClaw shows the step from <b>chatbot to colleague</b>: memory, tools and a schedule turn an LLM into an agent that really saves time on recurring marketing work.</p>
+   <p>But it acts with <b>my</b> permissions. I would use it for read-only research and drafts first, keep a human approval step for anything public, and run it in a sandbox – never with my main accounts.</p>
+   <div class="verdict"><span>Hype</span><span class="on">Useful – with guardrails</span><span>Not ready</span></div></div>
+ </div>
+</div>
+
+<footer>Sources: openclaw docs &amp; GitHub (architecture, workspace files, heartbeat); The Hacker News, Feb 2026 (ClawHub malicious skills, VirusTotal scanning); NVIDIA newsroom, 16 Mar 2026 (NemoClaw, OpenShell); course slides Unit 5.7 (Prof. Pin Luarn). Use case and time saving are my own concept and estimate.</footer>
+</body></html>
