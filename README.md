@@ -1,3 +1,19 @@
+> ## Final project – PlacementRadar (Moritz Binder)
+>
+> Everything for the final project is in the folder **[`final_project/`](final_project/)**:
+>
+> | | |
+> |---|---|
+> | Project page – 15 slides: why, for whom, what, how it is built, how good it is, limits | <https://moritzb1.github.io/final_project/> |
+> | Slides as PDF | [`final_project/PlacementRadar_slides.pdf`](final_project/PlacementRadar_slides.pdf) |
+> | Live app – no login, no key | <https://placementradar.itsmoribind.workers.dev> |
+> | Source code, models, all tests (public, AGPL-3.0) | <https://github.com/moritzb1/placementradar> |
+>
+> The app needs a server part (Cloudflare Worker with the Gemini and YouTube keys), so its code lives in its own repository;
+> GitHub Pages can only serve static files. [`final_project/README.md`](final_project/README.md) explains where to start reading.
+
+---
+
 # MMI5194 — AI Applications Course Site
 
 This repository is the course website for **MMI5194**, taught by **Prof. Pin Luarn**
