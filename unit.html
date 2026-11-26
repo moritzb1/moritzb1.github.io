@@ -817,7 +817,7 @@
                 const demoLinkHtml = [image.demoUrl, ...(image.moreUrls || [])].filter(Boolean).map(line => {
                     const [label, url] = line.includes(' | ') ? line.split(' | ').map(t => t.trim()) : ['', line];
                     return `<a href="${url}" target="_blank" rel="noopener" class="demo-link" onclick="event.stopPropagation()">
-                           <i class="fas fa-external-link-alt"></i> ${label ? `<b>${label}:</b> ` : ''}${url}
+                           <i class="fas fa-external-link-alt"></i> <span>${label ? `<b>${label}</b><br>` : ''}${url}</span>
                        </a>`;
                 }).join('<br>');
 
