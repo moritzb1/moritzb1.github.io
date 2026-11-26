@@ -1,0 +1,2 @@
+Final project (not a Unit 6 task): PlacementRadar – every brand in a YouTube video, its media value, the ad label and the creators that fit a brand. Project page with 15 slides, live app and code
+https://moritzb1.github.io/final_project/
