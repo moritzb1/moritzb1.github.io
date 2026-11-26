@@ -1,0 +1,2 @@
+Final project: PlacementRadar – every brand in a YouTube video, its media value, the ad label and the creators that fit a brand (project page with 15 slides, app and code)
+https://moritzb1.github.io/apps/placementradar/
