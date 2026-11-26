@@ -6,7 +6,7 @@ tools search YouTube for a brand or rank the creators that fit a product.**
 
 | | |
 |---|---|
-| Project page (15 slides: why, for whom, what, how, how good, limits) | https://moritzb1.github.io/final_project/ |
+| Project page (18 slides: why, for whom, what, how, how good, limits) | https://moritzb1.github.io/final_project/ |
 | Slides as PDF | [PlacementRadar_slides.pdf](PlacementRadar_slides.pdf) |
 | Live app – no login, no key | https://placementradar.itsmoribind.workers.dev |
 | Source code, models, every test | https://github.com/moritzb1/placementradar |
