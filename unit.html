@@ -813,10 +813,13 @@
             galleryGrid.innerHTML = images.map((image, index) => {
                 const fileName = image.src.split('/').pop().replace(/\.[^.]+$/, '');
                 const captionText = image.caption || unit.name;
-                const demoLinkHtml = [image.demoUrl, ...(image.moreUrls || [])].filter(Boolean).map(url =>
-                    `<a href="${url}" target="_blank" rel="noopener" class="demo-link" onclick="event.stopPropagation()">
-                           <i class="fas fa-external-link-alt"></i> ${url}
-                       </a>`).join('<br>');
+                // student addition: a link line may start with a label, "Label | https://…", shown before the URL
+                const demoLinkHtml = [image.demoUrl, ...(image.moreUrls || [])].filter(Boolean).map(line => {
+                    const [label, url] = line.includes(' | ') ? line.split(' | ').map(t => t.trim()) : ['', line];
+                    return `<a href="${url}" target="_blank" rel="noopener" class="demo-link" onclick="event.stopPropagation()">
+                           <i class="fas fa-external-link-alt"></i> ${label ? `<b>${label}:</b> ` : ''}${url}
+                       </a>`;
+                }).join('<br>');
 
                 return `
                     <div class="gallery-item" data-bs-toggle="modal" data-bs-target="#imageModal" onclick="showImage(${index})">
