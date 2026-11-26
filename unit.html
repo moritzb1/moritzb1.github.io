@@ -734,6 +734,7 @@
                     const note = {};
                     if (lines[0]) note.caption = lines[0];
                     if (lines[1]) note.demoUrl = lines[1];
+                    if (lines.length > 2) note.moreUrls = lines.slice(2); // student addition: further links, one per line
                     return note;
                 })
                 .catch(() => null);
@@ -799,6 +800,7 @@
                 if (note) {
                     if (note.caption) image.caption = note.caption;
                     if (note.demoUrl) image.demoUrl = note.demoUrl;
+                    if (note.moreUrls) image.moreUrls = note.moreUrls;
                 }
             }));
         }
@@ -811,11 +813,10 @@
             galleryGrid.innerHTML = images.map((image, index) => {
                 const fileName = image.src.split('/').pop().replace(/\.[^.]+$/, '');
                 const captionText = image.caption || unit.name;
-                const demoLinkHtml = image.demoUrl
-                    ? `<a href="${image.demoUrl}" target="_blank" rel="noopener" class="demo-link" onclick="event.stopPropagation()">
-                           <i class="fas fa-external-link-alt"></i> ${image.demoUrl}
-                       </a>`
-                    : '';
+                const demoLinkHtml = [image.demoUrl, ...(image.moreUrls || [])].filter(Boolean).map(url =>
+                    `<a href="${url}" target="_blank" rel="noopener" class="demo-link" onclick="event.stopPropagation()">
+                           <i class="fas fa-external-link-alt"></i> ${url}
+                       </a>`).join('<br>');
 
                 return `
                     <div class="gallery-item" data-bs-toggle="modal" data-bs-target="#imageModal" onclick="showImage(${index})">
