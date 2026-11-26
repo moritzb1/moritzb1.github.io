@@ -518,7 +518,9 @@
     <script>
         let currentUnit = 1;
         let images = [];
-        const totalUnits = 6;
+        const profUnits = 6;  // units in the instructor's projects.txt
+        const totalUnits = 7; // + unit 7 = final project, added by the student
+        const extraUnitInfo = { 7: { name: "Final project: PlacementRadar", attributes: [] } };
 
         // Always read projects.txt from the instructor's own site so every student
         // fork (even hosted on a different github.io domain) shows the same, current
@@ -532,7 +534,8 @@
             3: { name: "Teachable Machine, YOLO, Neural Style Transfer, Simple Chat App, Island Builder", attributes: [] },
             4: { name: "Ollama, Gemini", attributes: [] },
             5: { name: "N8N, OpenAI Agent, Claude Agent, OpenClaw, Hermes Agent", attributes: [] },
-            6: { name: "Meta Muse, Manus CUE!, Hark Pro, OpenAI Dots, Grok Bot, Claude Duet", attributes: [] }
+            6: { name: "Meta Muse, Manus CUE!, Hark Pro, OpenAI Dots, Grok Bot, Claude Duet", attributes: [] },
+            ...extraUnitInfo
         };
 
         let unitInfo = defaultUnitInfo;
@@ -559,12 +562,12 @@
                 const text = await res.text();
                 const parsed = parseKeyValueTxt(text);
                 const loaded = {};
-                for (let i = 1; i <= totalUnits; i++) {
+                for (let i = 1; i <= profUnits; i++) {
                     const name = parsed[`unit${i}`];
                     if (name) loaded[i] = { name, attributes: [] };
                 }
                 // Only use the loaded list if every unit was found; otherwise keep defaults
-                unitInfo = (Object.keys(loaded).length === totalUnits) ? loaded : defaultUnitInfo;
+                unitInfo = (Object.keys(loaded).length === profUnits) ? { ...loaded, ...extraUnitInfo } : defaultUnitInfo;
             } catch (err) {
                 console.warn('Could not load projects.txt, using built-in defaults.', err);
                 unitInfo = defaultUnitInfo;

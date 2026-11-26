@@ -181,7 +181,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const totalUnits = 6;
+        const totalUnits = 6; // units in the instructor's projects.txt
+        // Unit 7 = final project, added by the student (not part of the instructor's list)
+        const extraUnits = [{id: 7, description: 'Final project: PlacementRadar – brands in YouTube videos, media value, ad disclosure, creator fit'}];
 
         // Fallback project descriptions (used if projects.txt cannot be fetched, e.g. opened via file://)
         const defaultProjects = [
@@ -193,7 +195,7 @@
             {id: 6, description: 'Meta Muse, Manus CUE!, Hark Pro, OpenAI Dots, Grok Bot, Claude Duet'}
         ];
 
-        let projects = defaultProjects;
+        let projects = [...defaultProjects, ...extraUnits];
 
         // Always read projects.txt from the instructor's own site so every student
         // fork (even hosted on a different github.io domain) shows the same, current
@@ -212,10 +214,10 @@
                     if (description) loaded.push({id: i, description});
                 }
                 // Only use the loaded list if every unit was found; otherwise keep defaults
-                projects = (loaded.length === totalUnits) ? loaded : defaultProjects;
+                projects = [...((loaded.length === totalUnits) ? loaded : defaultProjects), ...extraUnits];
             } catch (err) {
                 console.warn('Could not load projects.txt, using built-in defaults.', err);
-                projects = defaultProjects;
+                projects = [...defaultProjects, ...extraUnits];
             }
         }
 
